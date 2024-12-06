@@ -11,4 +11,4 @@ class UserProfile(models.Model):
     address = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"Profile of {self.user.username}"
+        return f"Profile of {self.user.username}" # Relation one to one
