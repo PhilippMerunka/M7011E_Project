@@ -12,5 +12,5 @@ urlpatterns = [
     path('api/', include(router.urls)),  # API endpoints
     path('register/', register_user, name='register'),  # HTML registration
     path('login/', login_user, name='login'),  # HTML login
-    path('logout/', logout_user, name='logout'),  # HTML logout
+    path('logout/', logout_user, name='logout'),
 ]

@@ -6,6 +6,7 @@ from rest_framework.viewsets import ModelViewSet
 from .models import UserProfile
 from .serializers import UserProfileSerializer
 from rest_framework.permissions import IsAuthenticated
+from django.conf import settings
 
 class UserProfileViewSet(ModelViewSet):
     queryset = UserProfile.objects.all()
@@ -44,5 +45,15 @@ def login_user(request):
 
 
 def logout_user(request):
+    # Check if the user logged in via Google OAuth
+    is_google_user = request.user.is_authenticated and request.user.social_auth.filter(provider='google-oauth2').exists()
+
+    # Log the user out of the Django session
     logout(request)
-    return redirect('login')
+
+    # If the user logged in via Google OAuth, redirect to Google's logout URL
+    if is_google_user:
+        return redirect('https://accounts.google.com/logout')
+
+    # Otherwise, redirect to the homepage or login page
+    return redirect(settings.LOGOUT_REDIRECT_URL)
