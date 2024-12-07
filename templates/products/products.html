@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Products</title>
+</head>
+<body>
+    <p>
+        Logged in as {{ user.username }}
+        {% if user.is_superuser %}
+            (Admin)
+        {% elif user.is_staff %}
+            (Staff)
+        {% else %}
+            (User)
+        {% endif %}
+    </p>
+    <h2>Product Overview</h2>
+    <ul>
+        {% for product in products %}
+        <li>{{ product.name }} - {{ product.price }}€</li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'logout' %}">Logout</a>
+</body>
+</html>
