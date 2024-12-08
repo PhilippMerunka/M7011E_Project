@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html>
+
 <head>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
     <title>Verify 2FA</title>
 </head>
+
 <body>
-    <h2>Two-Factor Authentication</h2>
-    <form method="post">
-        {% csrf_token %}
-        <label for="otp">Enter your OTP:</label>
-        <input type="text" id="otp" name="otp" required>
-        <button type="submit">Verify</button>
-    </form>
+    <div class="auth-container">
+        <h2>Two-Factor Authentication</h2>
+        <form method="post">
+            {% csrf_token %}
+            <label for="otp">Enter your OTP:</label>
+            <input type="text" id="otp" name="otp" required>
+            <button type="submit">Verify</button>
+        </form>
+    </div>
 </body>
+
 </html>

@@ -45,7 +45,7 @@ def register_user(request):
             try:
                 # Create the new user
                 user = User.objects.create_user(username=username, email=email, password=password)
-                UserProfile.objects.create(user=user)  # Ensure profile creation
+                # UserProfile.objects.create(user=user)  # Ensure profile creation
                 messages.success(request, 'Registration successful!')
 
                 # Render email content from template
@@ -151,7 +151,7 @@ def verify_2fa(request):
             backend = get_backends()[0]  # Use the first backend or the appropriate one
             user.backend = f"{backend.__module__}.{backend.__class__.__name__}"
             login(request, user)  # Log the user in
-            del request.session['pre_2fa_user']
+            request.session.pop('pre_2fa_user', None)
             return redirect('products')
         else:
             messages.error(request, 'Invalid OTP. Please try again.')
