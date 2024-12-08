@@ -7,6 +7,8 @@ from .models import UserProfile
 from .serializers import UserProfileSerializer
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
 
 class UserProfileViewSet(ModelViewSet):
     queryset = UserProfile.objects.all()
@@ -19,15 +21,47 @@ class UserProfileViewSet(ModelViewSet):
 # HTML Views for user authentication
 def register_user(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        email = request.POST['email']
-        password = request.POST['password']
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        # Debugging: Log the received data
+        print(f"Username: {username}, Email: {email}, Password: {password}")
+
+        if not username or not email or not password:
+            messages.error(request, 'All fields are required.')
+            return render(request, 'users/register.html')
+
         if User.objects.filter(username=username).exists():
             messages.error(request, 'Username already exists.')
         else:
-            User.objects.create_user(username=username, email=email, password=password)
-            messages.success(request, 'Registration successful!')
-            return redirect('login')
+            try:
+                # Create the new user
+                user = User.objects.create_user(username=username, email=email, password=password)
+                messages.success(request, 'Registration successful!')
+
+                # Render email content from template
+                try:
+                    # Render email content from template
+                    email_content = render_to_string('emails/welcome_email.html', {'username': username})
+                    email_message = EmailMessage(
+                        'Welcome to MyApp!',
+                        email_content,
+                        settings.EMAIL_FROM_USER,
+                        [email],
+                    )
+                    email_message.content_subtype = 'html'
+                    email_message.send()
+                except Exception as e:
+                    print(f"Email Error: {e}")
+                    messages.warning(request, 'Registration successful, but we could not send the welcome email.')
+
+
+                return redirect('login')
+            except Exception as e:
+                # Log the exception for debugging
+                print(f"Error: {e}")
+                messages.error(request, 'An error occurred during registration. Please try again.')
     return render(request, 'users/register.html')
 
 

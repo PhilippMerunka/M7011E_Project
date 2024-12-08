@@ -62,11 +62,19 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.user_details',  # Updates user details on login
 )
 
-
 AUTHENTICATION_BACKENDS = [
     'social_core.backends.google.GoogleOAuth2',  # Add Google OAuth2 backend
     'django.contrib.auth.backends.ModelBackend', # Default backend
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+EMAIL_FROM_USER = config('EMAIL_FROM_USER')
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
