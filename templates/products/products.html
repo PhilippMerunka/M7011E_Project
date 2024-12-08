@@ -2,6 +2,27 @@
 <html>
 <head>
     <title>Products</title>
+    <script>
+        // Function to sort the products by name or price
+        function sortProducts(criteria, order) {
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('sort', criteria);
+            urlParams.set('order', order);
+            window.location.search = urlParams.toString();
+        }
+
+        // Function to filter by category
+        function filterByCategory() {
+            const selectedCategory = document.getElementById('category-filter').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            if (selectedCategory) {
+                urlParams.set('category', selectedCategory);
+            } else {
+                urlParams.delete('category');
+            }
+            window.location.search = urlParams.toString();
+        }
+    </script>
 </head>
 <body>
     <p>
@@ -15,11 +36,41 @@
         {% endif %}
     </p>
     <h2>Product Overview</h2>
+
+    <!-- Sorting Options -->
+    <div>
+        <button onclick="sortProducts('name', 'asc')">Sort by Name (A-Z)</button>
+        <button onclick="sortProducts('name', 'desc')">Sort by Name (Z-A)</button>
+        <button onclick="sortProducts('price', 'asc')">Sort by Price (Low-High)</button>
+        <button onclick="sortProducts('price', 'desc')">Sort by Price (High-Low)</button>
+    </div>
+
+    <!-- Filter Options -->
+    <div>
+        <label for="category-filter">Filter by Category:</label>
+        <select id="category-filter" onchange="filterByCategory()">
+            <option value="">-- All Categories --</option>
+            {% for category in all_categories %}
+                <option value="{{ category.id }}" {% if category.id|stringformat:"s" == request.GET.category %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
     <ul>
         {% for product in products %}
-        <li>{{ product.name }} - {{ product.price }}€</li>
+            <li>
+                <strong>{{ product.name }}</strong><br>
+                {{ product.description }}<br>
+                {{ product.price }}€<br>
+                Categories: {% for category in product.categories.all %}{{ category.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            </li>
+        {% empty %}
+            <li>No products found.</li>
         {% endfor %}
     </ul>
+
     <a href="{% url 'logout' %}">Logout</a>
 </body>
 </html>
