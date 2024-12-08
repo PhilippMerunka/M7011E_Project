@@ -124,9 +124,18 @@ def setup_2fa(request):
 
     # Generate QR code
     otpauth_url = pyotp.TOTP(secret).provisioning_uri(request.user.email, issuer_name="MyApp")
-    qr = qrcode.make(otpauth_url)
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(otpauth_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill='black', back_color='white')
+    img = img.resize((300, 300))  # Resize the QR code to 300x300 pixels
     buffer = io.BytesIO()
-    qr.save(buffer, format="PNG")
+    img.save(buffer, format="PNG")
     buffer.seek(0)
     qr_image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
 
