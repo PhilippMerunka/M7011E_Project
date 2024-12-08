@@ -9,6 +9,13 @@ from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
+import qrcode
+import io
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+import pyotp
+import base64
+from django.contrib.auth import get_backends
 
 class UserProfileViewSet(ModelViewSet):
     queryset = UserProfile.objects.all()
@@ -38,6 +45,7 @@ def register_user(request):
             try:
                 # Create the new user
                 user = User.objects.create_user(username=username, email=email, password=password)
+                UserProfile.objects.create(user=user)  # Ensure profile creation
                 messages.success(request, 'Registration successful!')
 
                 # Render email content from template
@@ -71,8 +79,15 @@ def login_user(request):
         password = request.POST['password']
         user = authenticate(request, username=username, password=password)
         if user is not None:
+            # Ensure the user has a profile
+            if not hasattr(user, 'profile'):
+                UserProfile.objects.create(user=user)
+            
+            if user.profile.two_fa_enabled:
+                request.session['pre_2fa_user'] = user.id
+                return redirect('verify_2fa')
             login(request, user)
-            return redirect('products')  # Redirect to products or another page
+            return redirect('products')
         else:
             messages.error(request, 'Invalid credentials.')
     return render(request, 'users/login.html')
@@ -91,3 +106,54 @@ def logout_user(request):
 
     # Otherwise, redirect to the homepage or login page
     return redirect(settings.LOGOUT_REDIRECT_URL)
+
+@login_required
+def setup_2fa(request):
+    profile = request.user.profile
+    secret = profile.generate_otp()
+
+    if request.method == 'POST':
+        otp = request.POST.get('otp')
+        if profile.verify_otp(otp):
+            profile.two_fa_enabled = True
+            profile.save()
+            messages.success(request, '2FA enabled successfully.')
+            return redirect('products')
+        else:
+            messages.error(request, 'Invalid OTP. Please try again.')
+
+    # Generate QR code
+    otpauth_url = pyotp.TOTP(secret).provisioning_uri(request.user.email, issuer_name="MyApp")
+    qr = qrcode.make(otpauth_url)
+    buffer = io.BytesIO()
+    qr.save(buffer, format="PNG")
+    buffer.seek(0)
+    qr_image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+
+    return render(request, 'users/setup_2fa.html', {'qr_image_base64': qr_image_base64})
+
+def verify_2fa(request):
+    user_id = request.session.get('pre_2fa_user')
+    
+    if not user_id:
+        return redirect('login')
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        messages.error(request, 'Invalid user session.')
+        return redirect('login')
+
+    if request.method == 'POST':
+        otp = request.POST.get('otp')
+        if user.profile.verify_otp(otp):
+            # Set the backend explicitly
+            backend = get_backends()[0]  # Use the first backend or the appropriate one
+            user.backend = f"{backend.__module__}.{backend.__class__.__name__}"
+            login(request, user)  # Log the user in
+            del request.session['pre_2fa_user']
+            return redirect('products')
+        else:
+            messages.error(request, 'Invalid OTP. Please try again.')
+
+    return render(request, 'users/verify_2fa.html')

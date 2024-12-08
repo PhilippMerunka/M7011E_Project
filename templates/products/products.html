@@ -71,6 +71,11 @@
         {% endfor %}
     </ul>
 
+    <br>
+    {% if not user.profile.two_fa_enabled %}
+        <a href="{% url 'setup_2fa' %}">Enable/Setup 2FA</a>
+    {% endif %}
+    <br>
     <a href="{% url 'logout' %}">Logout</a>
 </body>
 </html>

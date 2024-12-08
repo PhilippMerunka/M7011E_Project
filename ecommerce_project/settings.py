@@ -47,6 +47,8 @@ INSTALLED_APPS = [
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config('GOOGLE_OAUTH_CLIENT_ID') 
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET')
 
+LOGIN_URL = '/users/login/'  # Your custom login URL
+
 LOGIN_REDIRECT_URL = '/products/'  # Redirect here after login
 LOGOUT_REDIRECT_URL = '/users/login/'  # Redirect to the login page or any other URL
 
