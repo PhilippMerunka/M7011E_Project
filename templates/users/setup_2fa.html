@@ -1,17 +1,26 @@
 <!DOCTYPE html>
 <html>
+
 <head>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
     <title>Set up Two-Factor Authentication</title>
 </head>
+
 <body>
-    <h2>Set up Two-Factor Authentication</h2>
-    <p>Scan the QR code below using your authenticator app.</p>
-    <img src="data:image/png;base64,{{ qr_image_base64 }}" alt="QR Code">
-    <form method="post">
-        {% csrf_token %}
-        <label for="otp">Enter the code from your app:</label>
-        <input type="text" id="otp" name="otp" required>
-        <button type="submit">Enable 2FA</button>
-    </form>
+    <div class="auth-container">
+        <h2>Set up Two-Factor Authentication</h2>
+        <p>Scan the QR code below using your authenticator app.</p>
+        <div class="qr-code">
+            <img src="data:image/png;base64,{{ qr_image_base64 }}" alt="QR Code">
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <label for="otp">Enter the code from your app:</label>
+            <input type="text" id="otp" name="otp" required>
+            <button type="submit">Enable 2FA</button>
+        </form>
+    </div>
 </body>
+
 </html>

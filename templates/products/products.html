@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
+
 <head>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
     <title>Products</title>
     <script>
         // Function to sort the products by name or price
@@ -24,58 +27,65 @@
         }
     </script>
 </head>
+
 <body>
-    <p>
-        Logged in as {{ user.username }}
-        {% if user.is_superuser %}
+    <div class="store-container">
+        <p>
+            Logged in as {{ user.username }}
+            {% if user.is_superuser %}
             (Admin)
-        {% elif user.is_staff %}
+            {% elif user.is_staff %}
             (Staff)
-        {% else %}
+            {% else %}
             (User)
-        {% endif %}
-    </p>
-    <h2>Product Overview</h2>
+            {% endif %}
+        </p>
+        <h2>Product Overview</h2>
 
-    <!-- Sorting Options -->
-    <div>
-        <button onclick="sortProducts('name', 'asc')">Sort by Name (A-Z)</button>
-        <button onclick="sortProducts('name', 'desc')">Sort by Name (Z-A)</button>
-        <button onclick="sortProducts('price', 'asc')">Sort by Price (Low-High)</button>
-        <button onclick="sortProducts('price', 'desc')">Sort by Price (High-Low)</button>
-    </div>
+        <!-- Sorting Options -->
+        <div>
+            <button onclick="sortProducts('name', 'asc')">Sort by Name (A-Z)</button>
+            <button onclick="sortProducts('name', 'desc')">Sort by Name (Z-A)</button>
+            <button onclick="sortProducts('price', 'asc')">Sort by Price (Low-High)</button>
+            <button onclick="sortProducts('price', 'desc')">Sort by Price (High-Low)</button>
+        </div>
 
-    <!-- Filter Options -->
-    <div>
-        <label for="category-filter">Filter by Category:</label>
-        <select id="category-filter" onchange="filterByCategory()">
-            <option value="">-- All Categories --</option>
-            {% for category in all_categories %}
-                <option value="{{ category.id }}" {% if category.id|stringformat:"s" == request.GET.category %}selected{% endif %}>
+        <!-- Filter Options -->
+        <div>
+            <label for="category-filter">Filter by Category:</label>
+            <select id="category-filter" onchange="filterByCategory()">
+                <option value="">-- All Categories --</option>
+                {% for category in all_categories %}
+                <option value="{{ category.id }}" {% if category.id|stringformat:"s" == request.GET.category|stringformat:"s" %}selected{% endif %}>
                     {{ category.name }}
                 </option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <ul>
-        {% for product in products %}
+                {% endfor %}
+            </select>
+        </div>
+        
+        <ul>
+            {% for product in products %}
             <li>
                 <strong>{{ product.name }}</strong><br>
                 {{ product.description }}<br>
                 {{ product.price }}€<br>
-                Categories: {% for category in product.categories.all %}{{ category.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                Categories: 
+                {% for category in product.categories.all %}
+                    {{ category.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
             </li>
-        {% empty %}
+            {% empty %}
             <li>No products found.</li>
-        {% endfor %}
-    </ul>
+            {% endfor %}
+        </ul>
 
-    <br>
-    {% if not user.profile.two_fa_enabled %}
+        <br>
+        {% if not user.profile.two_fa_enabled %}
         <a href="{% url 'setup_2fa' %}">Enable/Setup 2FA</a>
-    {% endif %}
-    <br>
-    <a href="{% url 'logout' %}">Logout</a>
+        {% endif %}
+        <br>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
 </body>
+
 </html>

@@ -23,7 +23,10 @@ class UserProfile(models.Model):
 
     @receiver(post_save, sender=settings.AUTH_USER_MODEL)
     def save_user_profile(sender, instance, **kwargs):
-        instance.profile.save()
+        if not hasattr(instance, 'profile'):
+            UserProfile.objects.create(user=instance)
+        else:
+            instance.profile.save()
     
     def generate_otp(self):
         if not self.two_fa_secret:
