@@ -45,7 +45,6 @@ def register_user(request):
             try:
                 # Create the new user
                 user = User.objects.create_user(username=username, email=email, password=password)
-                # UserProfile.objects.create(user=user)  # Ensure profile creation
                 messages.success(request, 'Registration successful!')
 
                 # Render email content from template
