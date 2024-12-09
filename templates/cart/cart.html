@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+    <title>Cart</title>
+</head>
+
+<body>
+    <div class="store-container">
+        <h2>Your Cart</h2>
+        <ul>
+            {% for item in cart.items.all %}
+            <li>{{ item.product.name }} - {{ item.quantity }} x {{ item.product.price }}€</li>
+            {% empty %}
+            <li>Your cart is empty.</li>
+            {% endfor %}
+        </ul>
+        <a href="{% url 'products' %}">Continue Shopping</a>
+    </div>
+</body>
+
+</html>
