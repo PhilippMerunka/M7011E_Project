@@ -8,8 +8,8 @@ from .models import Order, OrderItem
 def place_order(request):
     cart = request.user.cart
     if not cart.items.exists():
-        return render(request, 'orders/error.html', {'message': 'Cart is empty'})
-
+        return render(request, 'orders/order_confirmation.html', {'error': 'Your cart is empty'})
+        
     total = sum(item.product.price * item.quantity for item in cart.items.all())
     order = Order.objects.create(user=request.user, total=total)
 

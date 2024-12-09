@@ -9,29 +9,34 @@
 
 <body>
     <div class="store-container">
-        <h1>Thank you for your order, {{ user.username }}!</h1>
-        <p>Your order has been successfully placed. Below are the details:</p>
+        {% if error %}
+            <h1>Order Not Placed</h1>
+            <p>{{ error }}</p>
+            <a href="{% url 'view_cart' %}" class="button">Return to Cart</a>
+        {% else %}
+            <h1>Thank You for Your Order!</h1>
+            <p>Your order has been successfully placed. Below are the details:</p>
 
-        <h2>Order Details</h2>
-        <p><strong>Order ID:</strong> {{ order.id }}</p>
-        <p><strong>Order Date:</strong> {{ order.created_at }}</p>
-        <p><strong>Total Amount:</strong> {{ order.total }}€</p>
+            <h2>Order Summary</h2>
+            <p><strong>Order ID:</strong> {{ order.id }}</p>
+            <p><strong>Order Date:</strong> {{ order.created_at }}</p>
+            <p><strong>Total Amount:</strong> {{ order.total }}€</p>
 
-        <h3>Items:</h3>
-        <ul>
-            {% for item in order.items.all %}
-            <li>
-                <strong>{{ item.product.name }}</strong><br>
-                Quantity: {{ item.quantity }}<br>
-                Price: {{ item.price }}€<br>
-                Subtotal: {{ item.quantity|floatformat:2|add:item.price|floatformat:2 }}€
-            </li>
-            {% empty %}
-            <li>No items in this order.</li>
-            {% endfor %}
-        </ul>
+            <h3>Items:</h3>
+            <ul>
+                {% for item in order.items.all %}
+                    <li>
+                        <strong>{{ item.product.name }}</strong><br>
+                        Quantity: {{ item.quantity }}<br>
+                        Price: {{ item.price }}€<br>
+                        Subtotal: {{ item.quantity|floatformat:2|add:item.price|floatformat:2 }}€
+                    </li>
+                {% endfor %}
+            </ul>
 
-        <a href="{% url 'products' %}">Back to Products</a>
+            <a href="{% url 'products' %}" class="button">Continue Shopping</a>
+            <a href="{% url 'view_orders' %}" class="button">View My Orders</a>
+        {% endif %}
     </div>
 </body>
 
