@@ -91,13 +91,13 @@ def login_user(request):
             messages.error(request, 'Invalid credentials.')
     return render(request, 'users/login.html')
 
-
 def logout_user(request):
     # Check if the user logged in via Google OAuth
     is_google_user = request.user.is_authenticated and request.user.social_auth.filter(provider='google-oauth2').exists()
 
     # Log the user out of the Django session
     logout(request)
+    request.session.pop('pre_2fa_user', None)  # Clear the session variable
 
     # If the user logged in via Google OAuth, redirect to Google's logout URL
     if is_google_user:
@@ -105,6 +105,7 @@ def logout_user(request):
 
     # Otherwise, redirect to the homepage or login page
     return redirect(settings.LOGOUT_REDIRECT_URL)
+
 
 @login_required
 def setup_2fa(request):
@@ -155,12 +156,12 @@ def verify_2fa(request):
     if request.method == 'POST':
         otp = request.POST.get('otp')
         if user.profile.verify_otp(otp):
-            # Set the backend explicitly
-            backend = get_backends()[0]  # Use the first backend or the appropriate one
+            # Set the backend explicitly for OAuth logins
+            backend = get_backends()[0]  # Use the first backend or appropriate one
             user.backend = f"{backend.__module__}.{backend.__class__.__name__}"
             login(request, user)  # Log the user in
             request.session.pop('pre_2fa_user', None)
-            return redirect('products')
+            return redirect('products')  # Redirect to the desired page
         else:
             messages.error(request, 'Invalid OTP. Please try again.')
 

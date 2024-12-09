@@ -66,6 +66,7 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',  # Updates user details on login
+    'users.pipeline.verify_2fa_for_oauth',
 )
 
 AUTHENTICATION_BACKENDS = [
