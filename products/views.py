@@ -3,6 +3,8 @@ from .models import Product, Category
 from .serializers import ProductSerializer, CategorySerializer
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect  # Add render and redirect imports
+from django.contrib import messages
+from django.contrib.auth.decorators import user_passes_test
 
 
 class CategoryViewSet(ModelViewSet):
@@ -37,3 +39,27 @@ def product_overview(request):
         'products': products,
         'all_categories': all_categories,
     })
+
+@user_passes_test(lambda u: u.is_superuser or u.is_staff, login_url='/users/login/')
+def add_product(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+        price = request.POST.get('price')
+        category_ids = request.POST.getlist('categories')
+
+        if not name or not price:
+            messages.error(request, 'Name and price are required fields.')
+        else:
+            product = Product.objects.create(
+                name=name,
+                description=description,
+                price=price,
+            )
+            product.categories.set(Category.objects.filter(id__in=category_ids))
+            product.save()
+            messages.success(request, f'Product "{name}" added successfully!')
+            return redirect('products')
+
+    categories = Category.objects.all()
+    return render(request, 'products/add_product.html', {'categories': categories})

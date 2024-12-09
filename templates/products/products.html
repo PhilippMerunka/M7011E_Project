@@ -47,6 +47,12 @@
             <button onclick="window.location.href='{% url 'view_orders' %}'">View Orders</button>
         </div>
 
+        {% if user.is_superuser or user.is_staff %}
+        <div>
+            <a href="{% url 'add_product' %}" class="button">Add New Product</a>
+        </div>
+        {% endif %}
+
         <h2>Product Overview</h2>
 
         <!-- Sorting Options -->

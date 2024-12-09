@@ -2,6 +2,8 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from products.models import Product, Category
 from rest_framework import status
+from .serializers import ProductSerializer, CategorySerializer
+from rest_framework.viewsets import ModelViewSet
 
 class ProductModelTest(TestCase):
     def setUp(self):
@@ -127,3 +129,11 @@ class ProductModelTest(TestCase):
         }
         response = self.client.post('/api/products/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+class ProductViewSet(ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+class CategoryViewSet(ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
