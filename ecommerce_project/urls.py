@@ -26,4 +26,5 @@ urlpatterns = [
     path('products/', include('products.urls')),  # Include URLs from products app
     path('auth/', include('social_django.urls', namespace='social')),  # Add social auth routes
     path('cart/', include('cart.urls')),
+    path('orders/', include('orders.urls')),
 ]

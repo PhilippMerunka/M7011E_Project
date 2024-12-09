@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+    <title>Order Confirmation</title>
+</head>
+
+<body>
+    <div class="store-container">
+        <h1>Thank you for your order, {{ user.username }}!</h1>
+        <p>Your order has been successfully placed. Below are the details:</p>
+
+        <h2>Order Details</h2>
+        <p><strong>Order ID:</strong> {{ order.id }}</p>
+        <p><strong>Order Date:</strong> {{ order.created_at }}</p>
+        <p><strong>Total Amount:</strong> {{ order.total }}€</p>
+
+        <h3>Items:</h3>
+        <ul>
+            {% for item in order.items.all %}
+            <li>
+                <strong>{{ item.product.name }}</strong><br>
+                Quantity: {{ item.quantity }}<br>
+                Price: {{ item.price }}€<br>
+                Subtotal: {{ item.quantity|floatformat:2|add:item.price|floatformat:2 }}€
+            </li>
+            {% empty %}
+            <li>No items in this order.</li>
+            {% endfor %}
+        </ul>
+
+        <a href="{% url 'products' %}">Back to Products</a>
+    </div>
+</body>
+
+</html>

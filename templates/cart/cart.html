@@ -12,11 +12,25 @@
         <h2>Your Cart</h2>
         <ul>
             {% for item in cart.items.all %}
-            <li>{{ item.product.name }} - {{ item.quantity }} x {{ item.product.price }}€</li>
+            <li>
+                <strong>{{ item.product.name }}</strong> -
+                {{ item.quantity }} x {{ item.product.price }}€
+                = {{ item.quantity|floatformat:2|add:item.product.price|floatformat:2 }}€
+                <form action="{% url 'add_to_cart' item.product.id %}" method="post">
+                    {% csrf_token %}
+                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1">
+                    <button type="submit">Update</button>
+                </form>
+            </li>
             {% empty %}
             <li>Your cart is empty.</li>
             {% endfor %}
         </ul>
+        <form action="{% url 'place_order' %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Place Order</button>
+        </form>
+        <br>
         <a href="{% url 'products' %}">Continue Shopping</a>
     </div>
 </body>
