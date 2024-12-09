@@ -10,23 +10,19 @@ This is the final project of the M7011E Design of Dynamic Web System course.
 - **Authentication**: Supports both Basic Auth and OAuth using Google.
 - **Two-Factor Authentication (2FA)**: Secure access using Google Authenticator.
 - **Third-party packages**: Integrates welcome-emails using SendGrid and Django
-
-### Testing & Deployment
-- **Unit and Integration Testing**: Ensures code quality and functionality.
-- **Docker Support**: Option to run services in isolated containers.
-- **Deployment**: Ready for deployment on platforms like Heroku or AWS.
+- **Unit testing**: Complete unit tests for the user and products modules
 
 ## Setup
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
-   cd <project-directory>
+   git clone https://github.com/PhilippMerunka/M7011E_Project.git
+   cd M7011E_Project
    ```
 2. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
-3.  **Setup PostgreSQL
+3.  **Setup PostgreSQL**
 4. **Environment Variables**:
    - Create an `.env` in the root directory and add the following credentials:
       - GOOGLE_OAUTH_CLIENT_ID
