@@ -166,3 +166,38 @@ def verify_2fa(request):
             messages.error(request, 'Invalid OTP. Please try again.')
 
     return render(request, 'users/verify_2fa.html')
+
+@login_required
+def update_user(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        user = request.user
+        if username:
+            user.username = username
+        if email:
+            user.email = email
+        if password:
+            user.set_password(password)
+        user.save()
+        messages.success(request, 'Profile updated successfully.')
+        return redirect('profile')
+
+    return render(request, 'users/update_user.html')
+
+@login_required
+def delete_user(request):
+    if request.method == 'POST':
+        user = request.user
+        user.delete()
+        messages.success(request, 'Account deleted successfully.')
+        return redirect('register')
+
+    return render(request, 'users/delete_user.html')
+
+@login_required
+def view_profile(request):
+    profile = request.user.profile
+    return render(request, 'users/view_profile.html', {'profile': profile})

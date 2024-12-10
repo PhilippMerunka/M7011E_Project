@@ -26,3 +26,22 @@ def add_to_cart(request, product_id):
 def view_cart(request):
     cart, _ = Cart.objects.get_or_create(user=request.user)
     return render(request, 'cart/cart.html', {'cart': cart})
+
+@login_required
+def update_cart_item(request, item_id):
+    cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
+    quantity = int(request.POST.get('quantity', 1))  # Default quantity is 1 if not provided
+    if quantity < 1:
+        return render(request, 'cart/cart.html', {'cart': Cart.objects.get(user=request.user), 'error': 'Quantity must be at least 1'})
+
+    cart_item.quantity = quantity
+    cart_item.save()
+
+    return render(request, 'cart/cart.html', {'cart': Cart.objects.get(user=request.user)})
+
+@login_required
+def remove_from_cart(request, item_id):
+    cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
+    cart_item.delete()
+
+    return render(request, 'cart/cart.html', {'cart': Cart.objects.get(user=request.user)})
