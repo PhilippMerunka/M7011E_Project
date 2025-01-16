@@ -5,17 +5,50 @@
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
     <title>Set up Two-Factor Authentication</title>
+    <script>
+        async function fetch2FAData() {
+            const token = localStorage.getItem('accessToken');
+            const response = await fetch('/api/users/setup-2fa/', {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('qr-code').src = `data:image/png;base64,${data.qr_code}`;
+            } else {
+                alert('Failed to fetch 2FA setup data.');
+            }
+        }
+
+        async function enable2FA(event) {
+            event.preventDefault();
+            const token = localStorage.getItem('accessToken');
+            const code = document.getElementById('otp').value;
+
+            const response = await fetch('/api/users/setup-2fa/', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code }),
+            });
+
+            if (response.ok) {
+                alert('2FA setup successful!');
+            } else {
+                alert('Failed to verify 2FA code.');
+            }
+        }
+    </script>
 </head>
 
-<body>
-    <div class="auth-container">
+<body onload="fetch2FAData()">
+    <div>
         <h2>Set up Two-Factor Authentication</h2>
         <p>Scan the QR code below using your authenticator app.</p>
-        <div class="qr-code">
-            <img src="data:image/png;base64,{{ qr_image_base64 }}" alt="QR Code">
-        </div>
-        <form method="post">
-            {% csrf_token %}
+        <img id="qr-code" src="data:image/png;base64,<QR_CODE_DATA>" alt="QR Code">
+        <form onsubmit="enable2FA(event)">
             <label for="otp">Enter the code from your app:</label>
             <input type="text" id="otp" name="otp" required>
             <button type="submit">Enable 2FA</button>

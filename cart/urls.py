@@ -1,7 +1,12 @@
-from django.urls import path
-from .views import add_to_cart, view_cart
+from django.urls import path, include
+from .views import CartOverviewPageView
+from rest_framework.routers import DefaultRouter
+from .views import CartViewSet
+
+router = DefaultRouter()
+router.register(r'cart', CartViewSet, basename='cart')
 
 urlpatterns = [
-    path('add/<int:product_id>/', add_to_cart, name='add_to_cart'),
-    path('', view_cart, name='view_cart'),
-]
+    # Frontend page view for cart
+    path('', CartOverviewPageView.as_view(), name='cart_overview_page'),
+] + router.urls

@@ -5,13 +5,39 @@
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
     <title>Login</title>
+    <script>
+        async function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/users/token/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('accessToken', data.access);
+                    localStorage.setItem('refreshToken', data.refresh);
+                    alert('Login successful!');
+                    window.location.href = '/dashboard'; // Replace with the dashboard URL
+                } else {
+                    alert('Login failed. Check your username and password.');
+                }
+            } catch (error) {
+                console.error('Error during login:', error);
+            }
+        }
+    </script>
 </head>
 
 <body>
     <div class="auth-container">
         <h2>Login</h2>
-        <form method="post">
-            {% csrf_token %}
+        <form onsubmit="handleLogin(event)">
             <label for="username">Username:</label>
             <input type="text" id="username" name="username" required><br>
             <label for="password">Password:</label>
@@ -19,11 +45,6 @@
             <button type="submit">Login</button>
         </form>
         <br>
-        <a href="{% url 'social:begin' 'google-oauth2' %}">Log in with Google</a>
-        <br>
-        <a href="{% url 'register' %}" style="text-decoration: none;">
-            <button type="button">Go to Register</button>
-        </a>
     </div>
 </body>
 

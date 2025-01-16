@@ -13,6 +13,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from .models import UserProfile
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .serializers import UserProfileSerializer, UserRegistrationSerializer
+from django.views.generic import TemplateView
 
 import logging
 import pyotp
@@ -139,3 +140,21 @@ class Disable2FAAPIView(APIView):
         user_profile.two_fa_secret = None
         user_profile.save()
         return Response({"message": "2FA disabled successfully"}, status=200)
+    
+class LoginPageView(TemplateView):
+    template_name = 'users/login.html'
+
+class RegisterPageView(TemplateView):
+    template_name = 'users/register.html'
+
+class Setup2FAView(TemplateView):
+    template_name = 'users/setup_2fa.html'
+
+class Verify2FAView(TemplateView):
+    template_name = 'users/verify_2fa.html'
+    
+# <a href="{% url 'social:begin' 'google-oauth2' %}">Log in with Google</a>
+#         <br>
+#         <a href="{% url 'register' %}" style="text-decoration: none;">
+#             <button type="button">Go to Register</button>
+#         </a>

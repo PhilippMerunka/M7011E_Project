@@ -5,13 +5,35 @@
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
     <title>Verify 2FA</title>
+    <script>
+        async function verify2FA(event) {
+            event.preventDefault();
+            const token = localStorage.getItem('accessToken');
+            const otp = document.getElementById('otp').value;
+
+            const response = await fetch('/api/users/login/', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ '2fa_code': otp }),
+            });
+
+            if (response.ok) {
+                alert('2FA verified. Welcome!');
+                window.location.href = '/dashboard';
+            } else {
+                alert('Invalid 2FA code.');
+            }
+        }
+    </script>
 </head>
 
 <body>
-    <div class="auth-container">
+    <div>
         <h2>Two-Factor Authentication</h2>
-        <form method="post">
-            {% csrf_token %}
+        <form onsubmit="verify2FA(event)">
             <label for="otp">Enter your OTP:</label>
             <input type="text" id="otp" name="otp" required>
             <button type="submit">Verify</button>

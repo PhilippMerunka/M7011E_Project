@@ -19,13 +19,15 @@ from django.urls import path, include
 from django.shortcuts import redirect
 
 urlpatterns = [
-    # path('', lambda request: redirect('/users/login/')),
     path('admin/', admin.site.urls),
-    path('api/', include('users.urls')),  # Include everything from users app
-    path('api/products/', include('products.urls')),  # Include products app routes
-    path('users/', include('users.urls')),  # Include URLs from users app
-    path('products/', include('products.urls')),  # Include URLs from products app
-    path('auth/', include('social_django.urls', namespace='social')),  # Add social auth routes
-    path('cart/', include('cart.urls')),
-    path('orders/', include('orders.urls')),
+    
+    # API routes
+    path('api/users/', include('users.api_urls')),  # Routes for API endpoints
+    path('api/cart/', include('cart.api_urls')),  # Example other app routes
+    path('api/products/', include('products.api_urls')),  # Example other app routes
+
+    # Frontend routes
+    path('users/', include('users.urls')),  # Routes for frontend views
+    path('products/', include('products.urls')),  # Example other app routes
+    path('cart/', include('cart.urls')),  # Example other app routes
 ]
