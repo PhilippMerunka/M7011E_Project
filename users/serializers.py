@@ -16,8 +16,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             password=validated_data['password']
         )
-        # Automatically create an associated UserProfile
-        UserProfile.objects.create(user=user)
         return user
 
 class UserProfileSerializer(serializers.ModelSerializer):

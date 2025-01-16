@@ -4,11 +4,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Product, Category
 from .serializers import CategorySerializer, ProductSerializer
+from users.permissions import IsStaffOrReadOnly, IsSuperuserOrReadOnly
 from django.views.generic import TemplateView
 
 class ProductViewSet(ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = ProductSerializer
+    permissions_classes = [IsStaffOrReadOnly]
 
     def get_queryset(self):
         # Return all products
@@ -44,6 +46,7 @@ class ProductViewSet(ModelViewSet):
 class CategoryViewSet(ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = CategorySerializer
+    permissions_classes = [IsSuperuserOrReadOnly]
 
     def get_queryset(self):
         # Return all categories

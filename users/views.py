@@ -14,6 +14,8 @@ from .models import UserProfile
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .serializers import UserProfileSerializer, UserRegistrationSerializer
 from django.views.generic import TemplateView
+from .permissions import IsSuperuser
+from django.contrib.auth.models import User
 
 import logging
 import pyotp
@@ -140,6 +142,38 @@ class Disable2FAAPIView(APIView):
         user_profile.two_fa_secret = None
         user_profile.save()
         return Response({"message": "2FA disabled successfully"}, status=200)
+    
+class UserManagementAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsSuperuser]
+
+    def post(self, request):
+        """
+        Promote or demote a user.
+        Request Body Example:
+        {
+            "user_id": 2,
+            "is_staff": true,
+            "is_superuser": false
+        }
+        """
+        user_id = request.data.get('user_id')
+        is_staff = request.data.get('is_staff', False)
+        is_superuser = request.data.get('is_superuser', False)
+
+        try:
+            user = User.objects.get(id=user_id)
+            user.is_staff = is_staff
+            user.is_superuser = is_superuser
+            user.save()
+
+            return Response({
+                "message": "User updated successfully",
+                "user_id": user.id,
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser
+            }, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
     
 class LoginPageView(TemplateView):
     template_name = 'users/login.html'

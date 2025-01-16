@@ -1,5 +1,8 @@
 from django.db import models
 from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.contrib.auth.models import User
 import pyotp
 
 class UserProfile(models.Model):
@@ -12,6 +15,16 @@ class UserProfile(models.Model):
     address = models.TextField(blank=True, null=True)
     two_fa_enabled = models.BooleanField(default=False)
     two_fa_secret = models.CharField(max_length=100, blank=True, null=True)
+    
+    @receiver(post_save, sender=User)
+    def create_user_profile(sender, instance, created, **kwargs):
+        if created and not hasattr(instance, 'profile'):
+            UserProfile.objects.create(user=instance)
+
+    @receiver(post_save, sender=User)
+    def save_user_profile(sender, instance, **kwargs):
+        # Save the profile whenever the user is saved
+        instance.profile.save()
     
     def generate_2fa_secret(self):
         if not self.two_fa_secret:
