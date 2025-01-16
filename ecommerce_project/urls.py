@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/users/', include('users.api_urls')),  # Routes for API endpoints
     path('api/cart/', include('cart.api_urls')),  # Example other app routes
     path('api/products/', include('products.api_urls')),  # Example other app routes
+    path('api/orders/', include('orders.api_urls')),  # Example other app routes
 
     # Frontend routes
     path('users/', include('users.urls')),  # Routes for frontend views
