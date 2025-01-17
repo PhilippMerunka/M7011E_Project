@@ -1,18 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .models import UserProfile
 from .serializers import UserProfileSerializer, UserRegistrationSerializer
-from rest_framework import viewsets, status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from .models import UserProfile
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from .serializers import UserProfileSerializer, UserRegistrationSerializer
 from django.views.generic import TemplateView
 from .permissions import IsSuperuser, IsSuperuserOrReadOnly
 from django.contrib.auth.models import User
@@ -20,12 +13,15 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from io import BytesIO
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
+from django.conf import settings
 import logging
 import pyotp
 import qrcode
 import base64
-from io import BytesIO
+
 logger = logging.getLogger(__name__)
 
 # General User Profile views, CRUD
@@ -83,6 +79,23 @@ class UserRegistrationAPIView(APIView):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            
+            # Send Welcome Email
+            try:
+                email_content = render_to_string('emails/welcome_email.html', {'username': user.username})
+                email_message = EmailMessage(
+                    subject='Welcome to MyApp!',
+                    body=email_content,
+                    from_email=settings.EMAIL_FROM_USER,
+                    to=[user.email],
+                )
+                email_message.content_subtype = 'html'  # Ensure the email is sent as HTML
+                email_message.send()
+
+            except Exception as e:
+                # Log email errors for debugging
+                print(f"Email Error: {e}")
+            
             return Response({
                 "username": user.username,
                 "email": user.email
