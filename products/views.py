@@ -10,7 +10,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 class ProductViewSet(ModelViewSet):
-    permissions_classes = [IsStaffOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly]
     serializer_class = ProductSerializer
     
      # Filter and search capabilities
@@ -25,7 +25,7 @@ class ProductViewSet(ModelViewSet):
         return Product.objects.all()
     
     def list(self, request):
-        queryset = Product.objects.all()
+        queryset = Product.objects.filter()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -59,7 +59,6 @@ class ProductViewSet(ModelViewSet):
 class CategoryViewSet(ModelViewSet):
     permission_classes = [IsSuperuserOrReadOnly]
     serializer_class = CategorySerializer
-    permissions_classes = [IsSuperuserOrReadOnly]
     
     # Add filter and search capabilities
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

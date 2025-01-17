@@ -151,6 +151,10 @@ class Disable2FAAPIView(APIView):
     def delete(self, request):
         """Disable 2FA."""
         user_profile = request.user.profile
+        
+        if not request.user.is_superuser and user_profile.user != request.user:
+            return Response({"error": "You can only disable 2FA for your own account."}, status=403)
+        
         user_profile.two_fa_enabled = False
         user_profile.two_fa_secret = None
         user_profile.save()
@@ -169,7 +173,7 @@ class Verify2FAView(TemplateView):
     template_name = 'users/verify_2fa.html'
     
 class UserManagementAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsSuperuser]
+    permission_classes = [IsSuperuser]
 
     def post(self, request):
         """

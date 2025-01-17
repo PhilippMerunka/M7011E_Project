@@ -12,7 +12,7 @@ from users.permissions import IsStaffOrReadOnly
 
 
 class CartViewSet(ModelViewSet):
-    permissions_classes = [IsStaffOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly]
     serializer_class = CartSerializer
     # Filter and search capabilities
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -67,7 +67,7 @@ class CartViewSet(ModelViewSet):
         return Response({'message': 'Cart deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
     
 class CartItemViewSet(ModelViewSet):
-    permissions_classes = [IsStaffOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly]
     serializer_class = CartItemSerializer
     
     # Filter and search capabilities

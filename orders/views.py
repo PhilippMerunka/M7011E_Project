@@ -11,7 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from users.permissions import IsStaffOrReadOnly
 
 class OrderViewSet(ModelViewSet):
-    permissions_classes = [IsStaffOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly]
     serializer_class = OrderSerializer
     
     # Filter and search capabilities
@@ -91,7 +91,7 @@ class OrderViewSet(ModelViewSet):
         return Response({'message': 'Order deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
     
 class OrderItemViewSet(ModelViewSet):
-    permissions_classes = [IsStaffOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly]
     serializer_class = OrderItemSerializer
     
     # Filter and search capabilities
