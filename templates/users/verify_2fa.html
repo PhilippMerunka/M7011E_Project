@@ -10,27 +10,43 @@
     <script>
         async function verify2FA(event) {
             event.preventDefault();
-            const token = localStorage.getItem('accessToken'); // Temporary access token from login
-            const otp = document.getElementById('otp').value;
+            const username = document.getElementById('username').value; // Get username
+            const password = document.getElementById('password').value; // Get password
+            const otp = document.getElementById('otp').value; // Get OTP
 
             try {
+                // Step 1: Verify the 2FA code
+                const token = localStorage.getItem('accessToken'); // Temporary access token from login
                 const response = await fetch('/api/users/login/', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ '2fa_code': otp }),
                 });
 
-                const data = await response.json();
-
                 if (response.ok) {
-                    // Save the new access and refresh tokens
-                    localStorage.setItem('accessToken', data.access); // Save updated access token
-                    localStorage.setItem('refreshToken', data.refresh); // Save refresh token
-                    alert('2FA verified. Welcome!');
-                    window.location.href = '/products/';
+                    // Step 2: Retrieve tokens from /api/users/token/ after 2FA verification
+                    const tokenResponse = await fetch('/api/users/token/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: username,
+                            password: password,
+                        }),
+                    });
+
+                    if (tokenResponse.ok) {
+                        const tokenData = await tokenResponse.json();
+                        // Save the new tokens
+                        localStorage.setItem('accessToken', tokenData.access);
+                        localStorage.setItem('refreshToken', tokenData.refresh);
+                        alert('2FA verified and tokens refreshed. Welcome!');
+                        window.location.href = '/products/';
+                    } else {
+                        alert('Failed to retrieve tokens after 2FA verification.');
+                    }
                 } else {
                     alert('Invalid 2FA code.');
                 }
@@ -46,8 +62,15 @@
     <div>
         <h2>Two-Factor Authentication</h2>
         <form onsubmit="verify2FA(event)">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required><br>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required><br>
+
             <label for="otp">Enter your OTP:</label>
-            <input type="text" id="otp" name="otp" required>
+            <input type="text" id="otp" name="otp" required><br>
+
             <button type="submit">Verify</button>
         </form>
     </div>
