@@ -26,6 +26,10 @@ class OrderViewSet(ModelViewSet):
         return Order.objects.filter(user=self.request.user)
     
     def list(self, request):
+        own_only = request.query_params.get('own', 'false').lower() == 'true'
+        
+        if own_only:
+            queryset = Order.objects.filter(user=request.user)
         if request.user.is_staff:
             queryset = Order.objects.all()
         else:
@@ -106,6 +110,10 @@ class OrderItemViewSet(ModelViewSet):
         return OrderItem.objects.filter(order__user=self.request.user)
     
     def list(self, request):
+        own_only = request.query_params.get('own', 'false').lower() == 'true'
+        
+        if own_only:
+            queryset = OrderItem.objects.filter(user=request.user)
         if request.user.is_staff:
             queryset = OrderItem.objects.all()
         else:

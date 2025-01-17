@@ -38,6 +38,10 @@ class UserProfileViewSet(viewsets.ViewSet):
     ordering = ['user__username']  # Default ordering
 
     def list(self, request):
+        own_only = request.query_params.get('own', 'false').lower() == 'true'
+        
+        if own_only:
+            queryset = UserProfile.objects.filter(user=request.user)
         if request.user.is_superuser:
             profiles = UserProfile.objects.all()  # Superusers see all profiles
         else:

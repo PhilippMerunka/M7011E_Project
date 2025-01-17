@@ -24,10 +24,8 @@ class ProductViewSet(ModelViewSet):
         # Return all products
         return Product.objects.all()
     
-    def list(self, request):
-        queryset = Product.objects.filter()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def create(self, request):
         # Create a new product
@@ -71,11 +69,9 @@ class CategoryViewSet(ModelViewSet):
         print("Fetching categories")
         # Return all categories
         return Category.objects.all()
-        
-    def list(self, request):
-        queryset = Category.objects.all()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def create(self, request):
         # Create a new category
@@ -106,3 +102,15 @@ class CategoryViewSet(ModelViewSet):
     
 class ProductOverviewPageView(TemplateView):
     template_name = 'products/products.html'
+    
+def product_overview(request):
+    all_categories = Category.objects.all()
+    selected_category_id = request.GET.get('category', '')
+
+    # Add a "selected" attribute to categories
+    for category in all_categories:
+        category.selected = "selected" if str(category.id) == str(selected_category_id) else ""
+
+    return render(request, 'products/products.html', {
+        'all_categories': all_categories,
+    })

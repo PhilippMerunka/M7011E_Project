@@ -9,6 +9,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from users.permissions import IsStaffOrReadOnly
+from rest_framework.views import APIView
+from products.models import Product
 
 
 class CartViewSet(ModelViewSet):
@@ -27,7 +29,11 @@ class CartViewSet(ModelViewSet):
         return Cart.objects.filter(user=self.request.user)
     
     def list(self, request):
-        if request.user.is_staff:
+        own_only = request.query_params.get('own', 'false').lower() == 'true'
+        
+        if own_only:
+            queryset = Cart.objects.filter(user=request.user)
+        elif request.user.is_staff:
             queryset = Cart.objects.all()
         else:
             queryset = Cart.objects.filter(user=request.user)
@@ -83,6 +89,10 @@ class CartItemViewSet(ModelViewSet):
         return CartItem.objects.filter(cart__user=self.request.user)
     
     def list(self, request):
+        own_only = request.query_params.get('own', 'false').lower() == 'true'
+        
+        if own_only:
+            queryset = CartItem.objects.filter(user=request.user)
         if request.user.is_staff:
             queryset = CartItem.objects.all()
         else:
@@ -93,7 +103,7 @@ class CartItemViewSet(ModelViewSet):
 
     def create(self, request):
         # Ensure the cart belongs to the authenticated user
-        cart = get_object_or_404(Cart, user=request.user)
+        cart, created = Cart.objects.get_or_create(user=request.user)
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
