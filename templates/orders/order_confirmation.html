@@ -9,46 +9,66 @@
     <script>
         async function fetchOrderDetails(orderId) {
             try {
+                const token = localStorage.getItem('accessToken'); // Retrieve JWT token
+    
                 // Fetch the order details
-                const response = await apiFetch(`/api/orders/orders/${orderId}/`);
+                const response = await fetch(`/api/orders/orders/${orderId}/`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+    
                 if (!response.ok) {
                     throw new Error('Failed to fetch order details');
                 }
-
+    
                 const order = await response.json();
-
+    
                 // Display order details
                 document.getElementById('order-id').textContent = order.id;
                 document.getElementById('order-date').textContent = new Date(order.created_at).toLocaleString();
                 document.getElementById('order-total').textContent = `${parseFloat(order.total).toFixed(2)}€`;
-
-                // Fetch order items specific to this order
-                const itemsResponse = await apiFetch(`/api/orders/items/?order=${order.id}`);
+    
+                // Fetch order items
+                const itemsResponse = await fetch(`/api/orders/items/?order=${order.id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+    
                 if (!itemsResponse.ok) {
                     throw new Error('Failed to fetch order items');
                 }
-
+    
                 const items = await itemsResponse.json();
                 const itemsContainer = document.getElementById('order-items');
                 itemsContainer.innerHTML = ''; // Clear previous items if any
-
+    
                 // Fetch and display each product's details dynamically
                 for (const item of items) {
-                    const productResponse = await apiFetch(`/api/products/products/${item.product}/`);
+                    const productResponse = await fetch(`/api/products/products/${item.product}/`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        },
+                    });
+    
                     if (!productResponse.ok) {
                         throw new Error(`Failed to fetch product details for product ID ${item.product}`);
                     }
-
+    
                     const product = await productResponse.json();
-
+    
                     // Render each item with product details
                     const itemElement = document.createElement('li');
                     itemElement.innerHTML = `
-                <strong>${product.name}</strong><br>
-                Quantity: ${item.quantity}<br>
-                Price: ${parseFloat(product.price).toFixed(2)}€<br>
-                Subtotal: ${(item.quantity * parseFloat(product.price)).toFixed(2)}€
-            `;
+                        <strong>${product.name}</strong><br>
+                        Quantity: ${item.quantity}<br>
+                        Price: ${parseFloat(product.price).toFixed(2)}€<br>
+                        Subtotal: ${(item.quantity * parseFloat(product.price)).toFixed(2)}€
+                    `;
                     itemsContainer.appendChild(itemElement);
                 }
             } catch (error) {
@@ -56,13 +76,12 @@
                 alert('Failed to load order details. Please try again later.');
             }
         }
-
-
+    
         document.addEventListener('DOMContentLoaded', () => {
             // Extract the `order_id` from the current URL path
             const pathParts = window.location.pathname.split('/');
             const orderId = pathParts[pathParts.length - 2]; // Assuming URL ends with /confirmation/<order_id>/
-
+    
             if (orderId) {
                 fetchOrderDetails(orderId);
             } else {
@@ -70,7 +89,7 @@
                 window.location.href = '/products/';
             }
         });
-    </script>
+    </script>    
 </head>
 
 <body>

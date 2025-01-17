@@ -11,6 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from users.permissions import IsStaffOrReadOnly
 from django.views.generic import TemplateView
 from rest_framework.permissions import BasePermission
+from django.utils.functional import SimpleLazyObject
 
 
 class CanManageOwnOrders(BasePermission):
@@ -222,10 +223,3 @@ class OrderOverviewPageView(TemplateView):
     
 class OrderConfirmationPageView(TemplateView):
     template_name = 'orders/order_confirmation.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        order_id = kwargs.get('order_id')  # Get the order ID from the URL
-        order = get_object_or_404(Order, id=order_id, user=self.request.user)  # Ensure the order belongs to the user
-        context['order'] = order
-        return context
