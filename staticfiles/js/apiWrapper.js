@@ -1,12 +1,17 @@
-// apiWrapper.js
-async function apiFetch(url, options = {}) {
+async function apiFetch(url, options = {}, requiresAuth = true) {
     try {
-        // Add the Authorization header with the access token
-        const token = localStorage.getItem('accessToken');
+        // Add the Authorization header with the access token if required
+        if (requiresAuth) {
+            const token = localStorage.getItem('accessToken');
+            if (!options.headers) {
+                options.headers = {};
+            }
+            options.headers['Authorization'] = `Bearer ${token}`;
+        }
+
         if (!options.headers) {
             options.headers = {};
         }
-        options.headers['Authorization'] = `Bearer ${token}`;
         options.headers['Content-Type'] = 'application/json';
 
         // Make the API request
