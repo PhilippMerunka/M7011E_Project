@@ -6,15 +6,28 @@ from .models import Product, Category
 from .serializers import CategorySerializer, ProductSerializer
 from users.permissions import IsStaffOrReadOnly, IsSuperuserOrReadOnly
 from django.views.generic import TemplateView
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 
 class ProductViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    serializer_class = ProductSerializer
     permissions_classes = [IsStaffOrReadOnly]
+    serializer_class = ProductSerializer
+    
+     # Filter and search capabilities
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['categories', 'price']  # Filterable fields
+    search_fields = ['name', 'description']  # Searchable fields
+    ordering_fields = ['price', 'name']  # Sortable fields
+    ordering = ['price']  # Default ordering
 
     def get_queryset(self):
         # Return all products
         return Product.objects.all()
+    
+    def list(self, request):
+        queryset = Product.objects.all()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def create(self, request):
         # Create a new product
@@ -44,13 +57,26 @@ class ProductViewSet(ModelViewSet):
         return Response({'message': 'Product deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
 class CategoryViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsSuperuserOrReadOnly]
     serializer_class = CategorySerializer
     permissions_classes = [IsSuperuserOrReadOnly]
+    
+    # Add filter and search capabilities
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['name']  # Filterable fields
+    search_fields = ['name']  # Searchable fields
+    ordering_fields = ['name']  # Sortable fields
+    ordering = ['name']  # Default ordering
 
     def get_queryset(self):
+        print("Fetching categories")
         # Return all categories
         return Category.objects.all()
+        
+    def list(self, request):
+        queryset = Category.objects.all()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def create(self, request):
         # Create a new category

@@ -1,108 +1,124 @@
-from django.test import TestCase, Client
+from rest_framework.test import APITestCase
+from rest_framework import status
 from django.contrib.auth.models import User
-from django.urls import reverse
-from django.conf import settings
-from .models import UserProfile
+from users.models import UserProfile
 import pyotp
 
-class UserProfileModelTest(TestCase):
+class UserProfileTestCase(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass', email='testuser@example.com')
-        self.profile = UserProfile.objects.get(user=self.user)
+        self.user = User.objects.create_user(username='testuser', password='password123')
+        self.client.login(username='testuser', password='password123')
+        self.profile = self.user.profile
 
-    def test_user_profile_created(self):
-        """Test that a UserProfile is automatically created when a User is created."""
-        self.assertIsNotNone(self.profile)
-        self.assertEqual(self.profile.user, self.user)
+    def test_retrieve_user_profile(self):
+        response = self.client.get(f'/api/user-profiles/{self.profile.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], self.profile.id)
 
-    def test_generate_otp(self):
-        """Test OTP generation for a user profile."""
-        otp_secret = self.profile.generate_otp()
-        self.assertIsNotNone(otp_secret)
-        self.assertEqual(len(otp_secret), 32)  # pyotp generates 32-character secrets
+    def test_update_user_profile(self):
+        data = {
+            "phone_number": "123456789",
+            "address": "123 Test Street"
+        }
+        response = self.client.put(f'/api/user-profiles/{self.profile.id}/', data)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.phone_number, "123456789")
+        self.assertEqual(self.profile.address, "123 Test Street")
 
-    def test_verify_otp(self):
-        """Test OTP verification for a user profile."""
-        otp_secret = self.profile.generate_otp()
-        totp = pyotp.TOTP(otp_secret)
-        otp = totp.now()
-        self.assertTrue(self.profile.verify_otp(otp))
+    def test_update_user_profile_invalid_user(self):
+        another_user = User.objects.create_user(username='anotheruser', password='password123')
+        another_profile = another_user.profile
+        data = {
+            "phone_number": "987654321"
+        }
+        response = self.client.put(f'/api/user-profiles/{another_profile.id}/', data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_invalid_otp(self):
-        """Test verification fails with an invalid OTP."""
-        self.profile.generate_otp()
-        self.assertFalse(self.profile.verify_otp('123456'))
+    def test_enable_2fa(self):
+        response = self.client.get('/api/users/setup-2fa/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('secret', response.data)
+        self.assertIn('qr_code', response.data)
 
+        secret = response.data['secret']
+        totp = pyotp.TOTP(secret)
+        valid_code = totp.now()
 
-class UserAuthenticationViewsTest(TestCase):
-    def setUp(self):
-        self.client = Client()
-        self.user = User.objects.create_user(username='testuser', password='testpass', email='testuser@example.com')
-        self.profile = UserProfile.objects.get(user=self.user)
-
-    def test_register_user(self):
-        """Test user registration view."""
-        response = self.client.post(reverse('register'), {
-            'username': 'newuser',
-            'email': 'newuser@example.com',
-            'password': 'newpass'
-        })
-        self.assertEqual(response.status_code, 302)  # Should redirect after successful registration
-        self.assertTrue(User.objects.filter(username='newuser').exists())
-
-    def test_login_user(self):
-        """Test user login view."""
-        response = self.client.post(reverse('login'), {
-            'username': 'testuser',
-            'password': 'testpass'
-        })
-        self.assertEqual(response.status_code, 302)  # Should redirect after successful login
-        self.assertEqual(int(self.client.session['_auth_user_id']), self.user.pk)
-
-    def test_login_user_with_2fa(self):
-        """Test login view with 2FA enabled."""
-        self.profile.generate_otp()
-        self.profile.two_fa_enabled = True
-        self.profile.save()
-
-        response = self.client.post(reverse('login'), {
-            'username': 'testuser',
-            'password': 'testpass'
-        })
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('verify_2fa'))
-
-    def test_setup_2fa(self):
-        """Test setup 2FA view."""
-        self.client.login(username='testuser', password='testpass')
-        response = self.client.post(reverse('setup_2fa'), {
-            'otp': pyotp.TOTP(self.profile.generate_otp()).now()
-        })
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('products'))
+        response = self.client.post('/api/users/setup-2fa/', {"code": valid_code})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.profile.refresh_from_db()
         self.assertTrue(self.profile.two_fa_enabled)
 
-    def test_verify_2fa(self):
-        """Test verify 2FA view."""
-        otp_secret = self.profile.generate_otp()
+    def test_enable_2fa_invalid_code(self):
+        self.client.get('/api/users/setup-2fa/')
+        invalid_code = "123456"
+        response = self.client.post('/api/users/setup-2fa/', {"code": invalid_code})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.profile.refresh_from_db()
+        self.assertFalse(self.profile.two_fa_enabled)
+
+    def test_disable_2fa(self):
+        self.profile.generate_2fa_secret()
         self.profile.two_fa_enabled = True
         self.profile.save()
 
-        self.client.post(reverse('login'), {
-            'username': 'testuser',
-            'password': 'testpass'
-        })
-        response = self.client.post(reverse('verify_2fa'), {
-            'otp': pyotp.TOTP(otp_secret).now()
-        })
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('products'))
+        response = self.client.delete('/api/users/disable-2fa/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.profile.refresh_from_db()
+        self.assertFalse(self.profile.two_fa_enabled)
+        self.assertIsNone(self.profile.two_fa_secret)
 
-    def test_logout_user(self):
-        """Test logout view."""
-        self.client.login(username='testuser', password='testpass')
-        response = self.client.get(reverse('logout'))
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, settings.LOGOUT_REDIRECT_URL)
-        self.assertNotIn('_auth_user_id', self.client.session)
+    def test_delete_user_profile(self):
+        response = self.client.delete(f'/api/user-profiles/{self.profile.id}/')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(UserProfile.objects.filter(id=self.profile.id).exists())
+
+    def test_retrieve_user_profile_invalid_user(self):
+        another_user = User.objects.create_user(username='anotheruser', password='password123')
+        another_profile = another_user.profile
+        response = self.client.get(f'/api/user-profiles/{another_profile.id}/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_register_user(self):
+        data = {
+            "username": "newuser",
+            "email": "newuser@example.com",
+            "password": "password123"
+        }
+        response = self.client.post('/api/users/register/', data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(User.objects.count(), 2)
+        self.assertEqual(User.objects.last().username, "newuser")
+
+    def test_login_user_with_2fa(self):
+        self.profile.generate_2fa_secret()
+        self.profile.two_fa_enabled = True
+        self.profile.save()
+
+        totp = pyotp.TOTP(self.profile.two_fa_secret)
+        valid_code = totp.now()
+
+        data = {
+            "username": "testuser",
+            "password": "password123",
+            "2fa_code": valid_code
+        }
+        response = self.client.post('/api/users/login/', data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("Successfully logged in", response.data['message'])
+
+    def test_login_user_with_2fa_invalid_code(self):
+        self.profile.generate_2fa_secret()
+        self.profile.two_fa_enabled = True
+        self.profile.save()
+
+        invalid_code = "123456"
+        data = {
+            "username": "testuser",
+            "password": "password123",
+            "2fa_code": invalid_code
+        }
+        response = self.client.post('/api/users/login/', data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("Invalid 2FA code", response.data['error'])

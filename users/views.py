@@ -14,8 +14,10 @@ from .models import UserProfile
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .serializers import UserProfileSerializer, UserRegistrationSerializer
 from django.views.generic import TemplateView
-from .permissions import IsSuperuser
+from .permissions import IsSuperuser, IsSuperuserOrReadOnly
 from django.contrib.auth.models import User
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 
 import logging
 import pyotp
@@ -26,10 +28,21 @@ logger = logging.getLogger(__name__)
 
 # General User Profile views, CRUD
 class UserProfileViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSuperuserOrReadOnly]
+    
+    # Filter and search capabilities
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['user', 'phone_number', 'address']  # Filterable fields
+    search_fields = ['user__username', 'user__email', 'phone_number', 'address']  # Searchable fields
+    ordering_fields = ['user__username', 'user__email']  # Sortable fields
+    ordering = ['user__username']  # Default ordering
 
     def list(self, request):
-        profiles = UserProfile.objects.filter(user=request.user)
+        if request.user.is_superuser:
+            profiles = UserProfile.objects.all()  # Superusers see all profiles
+        else:
+            profiles = UserProfile.objects.filter(user=request.user)  # Regular users only see their own profile
+        
         serializer = UserProfileSerializer(profiles, many=True)
         return Response(serializer.data)
 
@@ -155,7 +168,6 @@ class Setup2FAView(TemplateView):
 class Verify2FAView(TemplateView):
     template_name = 'users/verify_2fa.html'
     
-
 class UserManagementAPIView(APIView):
     permission_classes = [IsAuthenticated, IsSuperuser]
 
@@ -187,130 +199,3 @@ class UserManagementAPIView(APIView):
             }, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-        
-class RetrieveUserAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, user_id):
-        """
-        Retrieve user details and their profile.
-        """
-        try:
-            user = User.objects.get(id=user_id)
-
-            # Check if the user is retrieving their own account or is a superuser
-            if request.user != user and not request.user.is_superuser:
-                return Response(
-                    {"error": "You can only retrieve your own account or you must be a superuser"},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-
-            profile = user.profile
-
-            return Response({
-                "user_id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "phone_number": profile.phone_number,
-                "address": profile.address,
-                "is_active": user.is_active
-            }, status=status.HTTP_200_OK)
-
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-        except UserProfile.DoesNotExist:
-            return Response({"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
-    
-class UpdateUserAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def put(self, request, user_id):
-        """
-        Update user details and their profile (phone_number, address).
-        Users can update their own accounts.
-        Superusers can update any account.
-        Example Request Body:
-        {
-            "username": "new_username",
-            "email": "new_email@example.com",
-            "phone_number": "+123456789",
-            "address": "123 Main St",
-            "is_active": true
-        }
-        """
-        try:
-            user = User.objects.get(id=user_id)
-
-            # Check if the user is updating their own account or is a superuser
-            if request.user != user and not request.user.is_superuser:
-                return Response(
-                    {"error": "You can only update your own account or you must be a superuser"},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-
-            # Update User fields
-            username = request.data.get("username")
-            email = request.data.get("email")
-            is_active = request.data.get("is_active") if request.user.is_superuser else None  # Only superusers can update `is_active`
-
-            if username:
-                user.username = username
-            if email:
-                user.email = email
-            if is_active is not None:
-                user.is_active = is_active
-
-            user.save()
-
-            # Update UserProfile fields
-            profile = user.profile
-            phone_number = request.data.get("phone_number")
-            address = request.data.get("address")
-
-            if phone_number is not None:
-                profile.phone_number = phone_number
-            if address is not None:
-                profile.address = address
-
-            profile.save()
-
-            return Response({
-                "message": "User and profile updated successfully",
-                "user_id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "phone_number": profile.phone_number,
-                "address": profile.address,
-                "is_active": user.is_active
-            }, status=status.HTTP_200_OK)
-
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-        except UserProfile.DoesNotExist:
-            return Response({"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
-
-class DeleteUserAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, IsSuperuser]
-
-    def delete(self, request, user_id):
-        """
-        Delete a user.
-        """
-        try:
-            user = User.objects.get(id=user_id)
-            if not request.user.is_superuser:
-                return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
-
-            user.delete()
-            return Response({"message": "User deleted successfully"}, status=status.HTTP_200_OK)
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-    
-# <a href="{% url 'social:begin' 'google-oauth2' %}">Log in with Google</a>
-#         <br>
-#         <a href="{% url 'register' %}" style="text-decoration: none;">
-#             <button type="button">Go to Register</button>
-#         </a>

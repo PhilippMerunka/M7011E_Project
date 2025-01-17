@@ -6,14 +6,34 @@ from .models import Cart, CartItem
 from .serializers import CartSerializer, CartItemSerializer
 from django.views.generic import TemplateView
 from django.shortcuts import get_object_or_404
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from users.permissions import IsStaffOrReadOnly
+
 
 class CartViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permissions_classes = [IsStaffOrReadOnly]
     serializer_class = CartSerializer
-
+    # Filter and search capabilities
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['user']  # Filterable fields
+    search_fields = ['user__username']  # Searchable fields
+    ordering_fields = ['created_at']  # Sortable fields
+    ordering = ['created_at']  # Default ordering
+    fields = ['id', 'user', 'created_at', 'items', 'total_items', 'total_price']
+    
     def get_queryset(self):
         # Restrict carts to the authenticated user
         return Cart.objects.filter(user=self.request.user)
+    
+    def list(self, request):
+        if request.user.is_staff:
+            queryset = Cart.objects.all()
+        else:
+            queryset = Cart.objects.filter(user=request.user)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def create(self, request):
         # Prevent creating multiple carts for the same user
@@ -47,12 +67,29 @@ class CartViewSet(ModelViewSet):
         return Response({'message': 'Cart deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
     
 class CartItemViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permissions_classes = [IsStaffOrReadOnly]
     serializer_class = CartItemSerializer
+    
+    # Filter and search capabilities
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['cart']  # Filterable fields
+    search_fields = ['cart__user__username']  # Searchable fields
+    ordering_fields = ['id']  # Sortable fields
+    ordering = ['id']  # Default ordering
+    fields = ['id', 'cart', 'product', 'quantity']
 
     def get_queryset(self):
         # Restrict access to cart items in the authenticated user's cart
         return CartItem.objects.filter(cart__user=self.request.user)
+    
+    def list(self, request):
+        if request.user.is_staff:
+            queryset = CartItem.objects.all()
+        else:
+            queryset = CartItem.objects.filter(cart__user=request.user)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def create(self, request):
         # Ensure the cart belongs to the authenticated user

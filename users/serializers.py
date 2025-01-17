@@ -19,7 +19,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
     class Meta:
         model = UserProfile
-        fields = ['id', 'user', 'phone_number', 'address', 'two_fa_enabled', 'two_fa_secret']
-        read_only_fields = ['user']
+        fields = ['id', 'user', 'username', 'phone_number', 'address', 'two_fa_enabled', 'two_fa_secret']
+        read_only_fields = ['user', 'username']

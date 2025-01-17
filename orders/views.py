@@ -6,14 +6,33 @@ from django.shortcuts import get_object_or_404
 from cart.models import Cart, CartItem
 from .models import Order, OrderItem
 from .serializers import OrderSerializer, OrderItemSerializer
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from users.permissions import IsStaffOrReadOnly
 
 class OrderViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permissions_classes = [IsStaffOrReadOnly]
     serializer_class = OrderSerializer
+    
+    # Filter and search capabilities
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['user', 'total', 'created_at']  # Filterable fields
+    search_fields = ['user__username', 'user__email']  # Searchable fields
+    ordering_fields = ['user__username', 'total', 'created_at']  # Sortable fields
+    ordering = ['created_at']  # Default ordering
 
     def get_queryset(self):
         # Restrict orders to the authenticated user
         return Order.objects.filter(user=self.request.user)
+    
+    def list(self, request):
+        if request.user.is_staff:
+            queryset = Order.objects.all()
+        else:
+            queryset = Order.objects.filter(user=request.user)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def create(self, request):
         # Create an order from the user's cart
@@ -72,12 +91,28 @@ class OrderViewSet(ModelViewSet):
         return Response({'message': 'Order deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
     
 class OrderItemViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permissions_classes = [IsStaffOrReadOnly]
     serializer_class = OrderItemSerializer
+    
+    # Filter and search capabilities
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['order', 'product', 'quantity', 'price']  # Filterable fields
+    search_fields = ['order__user__username', 'order__user__email', 'product__name']  # Searchable fields
+    ordering_fields = ['order__user__username', 'product__name', 'quantity', 'price']  # Sortable fields
+    ordering = ['order__created_at']  # Default ordering
 
     def get_queryset(self):
         # Restrict order items to those in the authenticated user's orders
         return OrderItem.objects.filter(order__user=self.request.user)
+    
+    def list(self, request):
+        if request.user.is_staff:
+            queryset = OrderItem.objects.all()
+        else:
+            queryset = OrderItem.objects.filter(order__user=request.user)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def create(self, request):
         # Create a new order item (requires a valid order ID)
