@@ -10,28 +10,33 @@
     <script>
         async function verify2FA(event) {
             event.preventDefault();
-            const token = localStorage.getItem('accessToken');
+            const token = localStorage.getItem('accessToken'); // Temporary access token from login
             const otp = document.getElementById('otp').value;
 
             try {
-            const response = await apiFetch('/api/users/login/', {
-                method: 'POST',
-                headers: { 
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ '2fa_code': otp }),
-            });
+                const response = await fetch('/api/users/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ '2fa_code': otp }),
+                });
 
-            if (response.ok) {
-                alert('2FA verified. Welcome!');
-                window.location.href = '/products/';
-            } else {
-                alert('Invalid 2FA code.');
-            }
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Save the new access and refresh tokens
+                    localStorage.setItem('accessToken', data.access); // Save updated access token
+                    localStorage.setItem('refreshToken', data.refresh); // Save refresh token
+                    alert('2FA verified. Welcome!');
+                    window.location.href = '/products/';
+                } else {
+                    alert('Invalid 2FA code.');
+                }
             } catch (error) {
-            console.error('Error during 2FA verification:', error);
-            alert('An error occurred. Please try again.');
+                console.error('Error during 2FA verification:', error);
+                alert('An error occurred. Please try again.');
             }
         }
     </script>

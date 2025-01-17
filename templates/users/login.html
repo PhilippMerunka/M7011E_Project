@@ -13,7 +13,7 @@
             const password = document.getElementById('password').value;
 
             try {
-                // Step 1: Get the access token from /api/users/token/
+                // Step 1: Get the tokens from /api/users/token/
                 const tokenResponse = await fetch('/api/users/token/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -28,11 +28,12 @@
 
                 const tokenData = await tokenResponse.json();
                 const accessToken = tokenData.access;
+                const refreshToken = tokenData.refresh; // Extract refresh token
 
                 // Step 2: Authenticate the user with /api/users/login/
                 const loginResponse = await fetch('/api/users/login/', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Authorization': `Bearer ${accessToken}`,
                         'Content-Type': 'application/json',
                     },
@@ -46,7 +47,9 @@
                     alert('2FA required. Redirecting to verification page.');
                     window.location.href = '/users/verify-2fa/';
                 } else if (loginResponse.ok) {
-                    // Login successful
+                    // Login successful, save both tokens
+                    localStorage.setItem('accessToken', accessToken);
+                    localStorage.setItem('refreshToken', refreshToken); // Save refresh token
                     alert(`Welcome ${loginData.username}!`);
                     window.location.href = '/products/';
                 } else {

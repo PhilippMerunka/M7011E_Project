@@ -182,8 +182,12 @@
 
         async function logout() {
             try {
-                const accessToken = localStorage.getItem('accessToken'); // Use access token for logout
-                const refreshToken = localStorage.getItem('refreshToken'); // Use refresh token for logout
+                const accessToken = localStorage.getItem('accessToken');
+                const refreshToken = localStorage.getItem('refreshToken');
+
+                // Debugging logs
+                console.log('Access Token:', accessToken);
+                console.log('Refresh Token:', refreshToken);
 
                 if (!refreshToken) {
                     alert('No refresh token found. You may already be logged out.');
@@ -194,9 +198,9 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`, // Send the refresh token
+                        'Authorization': `Bearer ${accessToken}`,
                     },
-                    body: JSON.stringify({ refresh_token: refreshToken }), // Send the refresh token
+                    body: JSON.stringify({ refresh_token: refreshToken }),
                 });
 
                 if (response.ok) {
@@ -205,7 +209,6 @@
                     localStorage.removeItem('refreshToken');
 
                     alert('Successfully logged out!');
-                    // Redirect to the login page or another page
                     window.location.href = '/users/login/';
                 } else {
                     const errorData = await response.json();
