@@ -4,36 +4,57 @@
 <head>
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
-    <script src="{% static 'js/tokenManager.js' %}"></script>
     <script src="{% static 'js/apiWrapper.js' %}"></script>
     <title>Login</title>
     <script>
         async function handleLogin(event) {
-            console.log('handleLogin called'); // Debug entry point
             event.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+
             try {
-                const response = await apiFetch('/api/users/token/', {
+                // Step 1: Get the access token from /api/users/token/
+                const tokenResponse = await fetch('/api/users/token/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password }),
                 });
 
-                console.log('Response:', response);
+                if (!tokenResponse.ok) {
+                    const errorData = await tokenResponse.json();
+                    alert(`Login failed: ${errorData.error || 'Invalid credentials'}`);
+                    return;
+                }
 
-                if (response.ok) {
-                    const data = await response.json();
-                    localStorage.setItem('accessToken', data.access);
-                    localStorage.setItem('refreshToken', data.refresh);
-                    alert('Login successful!');
-                    console.log('Login successful!');
+                const tokenData = await tokenResponse.json();
+                const accessToken = tokenData.access;
+
+                // Step 2: Authenticate the user with /api/users/login/
+                const loginResponse = await fetch('/api/users/login/', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                const loginData = await loginResponse.json();
+
+                if (loginResponse.status === 400 && loginData.error === '2FA code required') {
+                    // 2FA is required, redirect to 2FA verification page
+                    localStorage.setItem('accessToken', accessToken); // Save token for 2FA verification
+                    alert('2FA required. Redirecting to verification page.');
+                    window.location.href = '/users/verify-2fa/';
+                } else if (loginResponse.ok) {
+                    // Login successful
+                    alert(`Welcome ${loginData.username}!`);
                     window.location.href = '/products/';
                 } else {
-                    alert('Login failed. Check your username and password.');
+                    alert(`Login failed: ${loginData.error || 'Unknown error'}`);
                 }
             } catch (error) {
                 console.error('Error during login:', error);
+                alert('An unexpected error occurred. Please try again.');
             }
         }
     </script>
