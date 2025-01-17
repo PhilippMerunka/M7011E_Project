@@ -4,39 +4,92 @@
 <head>
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+    <script src="{% static 'js/apiWrapper.js' %}"></script>
     <title>Order Confirmation</title>
+    <script>
+        async function fetchOrderDetails(orderId) {
+            try {
+                // Fetch the order details
+                const response = await apiFetch(`/api/orders/orders/${orderId}/`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch order details');
+                }
+
+                const order = await response.json();
+
+                // Display order details
+                document.getElementById('order-id').textContent = order.id;
+                document.getElementById('order-date').textContent = new Date(order.created_at).toLocaleString();
+                document.getElementById('order-total').textContent = `${parseFloat(order.total).toFixed(2)}€`;
+
+                // Fetch order items specific to this order
+                const itemsResponse = await apiFetch(`/api/orders/items/?order=${order.id}`);
+                if (!itemsResponse.ok) {
+                    throw new Error('Failed to fetch order items');
+                }
+
+                const items = await itemsResponse.json();
+                const itemsContainer = document.getElementById('order-items');
+                itemsContainer.innerHTML = ''; // Clear previous items if any
+
+                // Fetch and display each product's details dynamically
+                for (const item of items) {
+                    const productResponse = await apiFetch(`/api/products/products/${item.product}/`);
+                    if (!productResponse.ok) {
+                        throw new Error(`Failed to fetch product details for product ID ${item.product}`);
+                    }
+
+                    const product = await productResponse.json();
+
+                    // Render each item with product details
+                    const itemElement = document.createElement('li');
+                    itemElement.innerHTML = `
+                <strong>${product.name}</strong><br>
+                Quantity: ${item.quantity}<br>
+                Price: ${parseFloat(product.price).toFixed(2)}€<br>
+                Subtotal: ${(item.quantity * parseFloat(product.price)).toFixed(2)}€
+            `;
+                    itemsContainer.appendChild(itemElement);
+                }
+            } catch (error) {
+                console.error('Error fetching order details:', error);
+                alert('Failed to load order details. Please try again later.');
+            }
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Extract the `order_id` from the current URL path
+            const pathParts = window.location.pathname.split('/');
+            const orderId = pathParts[pathParts.length - 2]; // Assuming URL ends with /confirmation/<order_id>/
+
+            if (orderId) {
+                fetchOrderDetails(orderId);
+            } else {
+                alert('No order ID provided.');
+                window.location.href = '/products/';
+            }
+        });
+    </script>
 </head>
 
 <body>
     <div class="store-container">
-        {% if error %}
-            <h1>Order Not Placed</h1>
-            <p>{{ error }}</p>
-            <a href="{% url 'view_cart' %}" class="button">Return to Cart</a>
-        {% else %}
-            <h1>Thank You for Your Order!</h1>
-            <p>Your order has been successfully placed. Below are the details:</p>
+        <h1>Thank You for Your Order!</h1>
+        <p>Your order has been successfully placed. Below are the details:</p>
 
-            <h2>Order Summary</h2>
-            <p><strong>Order ID:</strong> {{ order.id }}</p>
-            <p><strong>Order Date:</strong> {{ order.created_at }}</p>
-            <p><strong>Total Amount:</strong> {{ order.total }}€</p>
+        <h2>Order Summary</h2>
+        <p><strong>Order ID:</strong> <span id="order-id"></span></p>
+        <p><strong>Order Date:</strong> <span id="order-date"></span></p>
+        <p><strong>Total Amount:</strong> <span id="order-total"></span></p>
 
-            <h3>Items:</h3>
-            <ul>
-                {% for item in order.items.all %}
-                    <li>
-                        <strong>{{ item.product.name }}</strong><br>
-                        Quantity: {{ item.quantity }}<br>
-                        Price: {{ item.price }}€<br>
-                        Subtotal: {{ item.quantity|floatformat:2|add:item.price|floatformat:2 }}€
-                    </li>
-                {% endfor %}
-            </ul>
+        <h3>Items:</h3>
+        <ul id="order-items">
+            <!-- Order items will be dynamically loaded here -->
+        </ul>
 
-            <a href="{% url 'products' %}" class="button">Continue Shopping</a>
-            <a href="{% url 'view_orders' %}" class="button">View My Orders</a>
-        {% endif %}
+        <button onclick="window.location.href='/products/'" class="button">Continue Shopping</button>
+        <button onclick="window.location.href='/orders/'" class="button">View My Orders</button>
     </div>
 </body>
 

@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from products.models import Product
+from decimal import Decimal
 
 class Order(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
@@ -8,8 +9,7 @@ class Order(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def recalculate_total(self):
-        # Calculate total based on related OrderItems
-        self.total = sum(item.price * item.quantity for item in self.items.all())
+        self.total = sum(Decimal(item.price) * item.quantity for item in self.items.all())
         self.save()
 
     def __str__(self):

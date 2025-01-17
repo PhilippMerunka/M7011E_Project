@@ -8,3 +8,4 @@ class Product(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     categories = models.ManyToManyField(Category, related_name='products')  # Relation many to many
+    is_active = models.BooleanField(default=True)

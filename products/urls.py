@@ -7,5 +7,5 @@ router.register(r'products', ProductViewSet, basename='product')
 
 urlpatterns = [
     # Frontend pages
-    path('products/', ProductOverviewPageView.as_view(), name='product_overview')
+    path('', ProductOverviewPageView.as_view(), name='product_overview')
 ]

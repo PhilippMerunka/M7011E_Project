@@ -18,6 +18,8 @@ from .permissions import IsSuperuser, IsSuperuserOrReadOnly
 from django.contrib.auth.models import User
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+from rest_framework_simplejwt.tokens import RefreshToken
 
 import logging
 import pyotp
@@ -41,8 +43,8 @@ class UserProfileViewSet(viewsets.ViewSet):
         own_only = request.query_params.get('own', 'false').lower() == 'true'
         
         if own_only:
-            queryset = UserProfile.objects.filter(user=request.user)
-        if request.user.is_superuser:
+            profiles = UserProfile.objects.filter(user=request.user)
+        elif request.user.is_superuser:
             profiles = UserProfile.objects.all()  # Superusers see all profiles
         else:
             profiles = UserProfile.objects.filter(user=request.user)  # Regular users only see their own profile
@@ -114,6 +116,28 @@ class LoginAPIView(APIView):
             "email": user.email,
             'two_fa_enabled': user.profile.two_fa_enabled
         }, status=200)
+        
+class LogoutAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def post(self, request):
+        """
+        Log out the user by blacklisting the provided refresh token.
+        """
+        try:
+            refresh_token = request.data.get("refresh_token")
+            if not refresh_token:
+                return Response({"error": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Blacklist the provided refresh token
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response({"message": "User logged out successfully."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error logging out user: {e}")
+            return Response({"error": "An error occurred during logout."}, status=status.HTTP_400_BAD_REQUEST)
 
 # 2FA Enable API
 class Setup2FAAPIView(APIView):

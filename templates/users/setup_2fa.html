@@ -4,40 +4,44 @@
 <head>
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+    <script src="{% static 'js/tokenManager.js' %}"></script>
+    <script src="{% static 'js/apiWrapper.js' %}"></script>
     <title>Set up Two-Factor Authentication</title>
     <script>
         async function fetch2FAData() {
-            const token = localStorage.getItem('accessToken');
-            const response = await fetch('/api/users/setup-2fa/', {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
+            try {
+                const response = await apiFetch('/api/users/setup-2fa/');
 
-            if (response.ok) {
-                const data = await response.json();
-                document.getElementById('qr-code').src = `data:image/png;base64,${data.qr_code}`;
-            } else {
-                alert('Failed to fetch 2FA setup data.');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('qr-code').src = `data:image/png;base64,${data.qr_code}`;
+                } else {
+                    alert('Failed to fetch 2FA setup data.');
+                }
+            } catch (error) {
+                console.error('Error fetching 2FA data:', error);
             }
         }
 
         async function enable2FA(event) {
             event.preventDefault();
-            const token = localStorage.getItem('accessToken');
             const code = document.getElementById('otp').value;
 
-            const response = await fetch('/api/users/setup-2fa/', {
-                method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ code }),
-            });
+            try {
+                const response = await apiFetch('/api/users/setup-2fa/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code }),
+                });
 
-            if (response.ok) {
-                alert('2FA setup successful!');
-            } else {
-                alert('Failed to verify 2FA code.');
+                if (response.ok) {
+                    alert('2FA setup successful!');
+                    window.location.href = '/products/';
+                } else {
+                    alert('Failed to verify 2FA code.');
+                }
+            } catch (error) {
+                console.error('Error enabling 2FA:', error);
             }
         }
     </script>
@@ -47,7 +51,7 @@
     <div>
         <h2>Set up Two-Factor Authentication</h2>
         <p>Scan the QR code below using your authenticator app.</p>
-        <img id="qr-code" src="data:image/png;base64,<QR_CODE_DATA>" alt="QR Code">
+        <img id="qr-code" src="" alt="QR Code">
         <form onsubmit="enable2FA(event)">
             <label for="otp">Enter the code from your app:</label>
             <input type="text" id="otp" name="otp" required>

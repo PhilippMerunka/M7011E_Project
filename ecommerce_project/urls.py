@@ -19,6 +19,8 @@ from django.urls import path, include
 from django.shortcuts import redirect
 
 urlpatterns = [
+    path('', lambda request: redirect('/users/login/')),
+    
     path('admin/', admin.site.urls),
     
     # API routes
@@ -31,4 +33,5 @@ urlpatterns = [
     path('users/', include('users.urls')),  # Routes for frontend views
     path('products/', include('products.urls')),  # Example other app routes
     path('cart/', include('cart.urls')),  # Example other app routes
+    path('orders/', include('orders.urls')),  # Example other app routes
 ]

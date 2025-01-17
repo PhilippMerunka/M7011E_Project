@@ -4,26 +4,31 @@
 <head>
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+    <script src="{% static 'js/tokenManager.js' %}"></script>
+    <script src="{% static 'js/apiWrapper.js' %}"></script>
     <title>Login</title>
     <script>
         async function handleLogin(event) {
+            console.log('handleLogin called'); // Debug entry point
             event.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-
             try {
-                const response = await fetch('/api/users/token/', {
+                const response = await apiFetch('/api/users/token/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password }),
                 });
+
+                console.log('Response:', response);
 
                 if (response.ok) {
                     const data = await response.json();
                     localStorage.setItem('accessToken', data.access);
                     localStorage.setItem('refreshToken', data.refresh);
                     alert('Login successful!');
-                    window.location.href = '/dashboard'; // Replace with the dashboard URL
+                    console.log('Login successful!');
+                    window.location.href = '/products/';
                 } else {
                     alert('Login failed. Check your username and password.');
                 }
@@ -44,6 +49,9 @@
             <input type="password" id="password" name="password" required><br>
             <button type="submit">Login</button>
         </form>
+        <a href="/users/register/">
+            <button type="button">Register</button>
+        </a>
         <br>
     </div>
 </body>

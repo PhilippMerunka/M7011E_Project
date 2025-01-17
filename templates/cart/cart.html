@@ -4,34 +4,194 @@
 <head>
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
-    <title>Cart</title>
+    <script src="{% static 'js/tokenManager.js' %}"></script>
+    <script src="{% static 'js/apiWrapper.js' %}"></script>
+    <title>Your Cart</title>
+    <script>
+
+        async function fetchCart() {
+            try {
+                // Fetch the cart from the API
+                const response = await apiFetch('/api/carts/carts/?own=true');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart');
+                }
+
+                const carts = await response.json();
+
+                // Assume the first cart belongs to the authenticated user
+                const cart = carts[0];
+                const cartContainer = document.getElementById('cart-container');
+                cartContainer.innerHTML = ''; // Clear existing cart items
+
+                if (!cart || !cart.items || cart.items.length === 0) {
+                    cartContainer.innerHTML = '<li>Your cart is empty.</li>';
+                    document.getElementById('cart-total').textContent = 'Total: 0.00€';
+                    return;
+                }
+
+                let total = 0; // Initialize total price
+
+                // Fetch and render each product
+                for (const item of cart.items) {
+                    const productResponse = await apiFetch(`/api/products/products/${item.product}`);
+                    if (!productResponse.ok) {
+                        throw new Error(`Failed to fetch product with ID ${item.product}`);
+                    }
+                    const product = await productResponse.json();
+
+                    // Update total
+                    total += item.quantity * product.price;
+
+                    // Render item
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                <strong>${product.name}</strong> -
+                ${item.quantity} x ${product.price}€ =
+                ${(item.quantity * product.price).toFixed(2)}€
+                <form onsubmit="updateCartItem(event, ${item.id})">
+                    <input type="number" name="quantity" value="${item.quantity}" min="1">
+                    <button type="submit">Update</button>
+                </form>
+                <button onclick="removeCartItem(${item.id})">Remove</button>
+            `;
+                    cartContainer.appendChild(li);
+                }
+
+                // Display total price
+                document.getElementById('cart-total').textContent = `Total: ${total.toFixed(2)}€`;
+
+            } catch (error) {
+                console.error('Error fetching cart:', error);
+                alert('Failed to load cart. Please try again later.');
+            }
+        }
+
+        async function fetchCartItems() {
+            const token = localStorage.getItem('accessToken'); // Retrieve JWT token
+
+            try {
+                const response = await fetch('/api/carts/items/?own=true', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`, // Add JWT token
+                    },
+                });
+
+                if (response.ok) {
+                    const cartItems = await response.json();
+                    const cartContainer = document.getElementById('cart-container');
+                    cartContainer.innerHTML = ''; // Clear existing cart items
+
+                    if (cartItems.length === 0) {
+                        cartContainer.innerHTML = '<li>Your cart is empty.</li>';
+                        return;
+                    }
+
+                    cartItems.forEach(item => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                    <strong>${item.product.name}</strong> -
+                    ${item.quantity} x ${item.product.price}€
+                    = ${(item.quantity * item.product.price).toFixed(2)}€
+                    <button onclick="removeFromCart(${item.id})">Remove</button>
+                `;
+                        cartContainer.appendChild(li);
+                    });
+                } else {
+                    alert('Failed to fetch cart items.');
+                }
+            } catch (error) {
+                console.error('Error fetching cart items:', error);
+            }
+        }
+
+        async function updateCartItem(event, itemId) {
+            event.preventDefault();
+            const quantity = event.target.querySelector('input[name="quantity"]').value;
+
+            try {
+                const response = await apiFetch(`/api/carts/items/${itemId}/`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ quantity }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update cart item');
+                }
+
+                fetchCart(); // Refresh the cart
+            } catch (error) {
+                console.error('Error updating cart item:', error);
+                alert('Failed to update item. Please try again later.');
+            }
+        }
+
+        async function removeCartItem(itemId) {
+            try {
+                const response = await apiFetch(`/api/carts/items/${itemId}/`, {
+                    method: 'DELETE',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to remove cart item');
+                }
+
+                fetchCart(); // Refresh the cart
+            } catch (error) {
+                console.error('Error removing cart item:', error);
+                alert('Failed to remove item. Please try again later.');
+            }
+        }
+
+        async function placeOrder() {
+            try {
+                const token = localStorage.getItem('accessToken'); // Retrieve JWT token
+                const response = await fetch('/api/orders/orders/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ /* Add any required data here */ })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Unknown error');
+                }
+
+                if (response.ok) {
+                    const order = await response.json();
+                    const orderId = order.id; // Extract the order ID
+                    alert('Order placed successfully!');
+                    window.location.href = `/orders/confirmation/${orderId}`; // Redirect to confirmation page
+                } else {
+                    const errorData = await response.json();
+                    alert(`Failed to place order: ${errorData.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Error placing order:', error);
+                alert('Failed to place order. Please try again.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchCart);
+    </script>
 </head>
 
 <body>
     <div class="store-container">
         <h2>Your Cart</h2>
-        <ul>
-            {% for item in cart.items.all %}
-            <li>
-                <strong>{{ item.product.name }}</strong> -
-                {{ item.quantity }} x {{ item.product.price }}€
-                = {{ item.quantity|floatformat:2|add:item.product.price|floatformat:2 }}€
-                <form action="{% url 'add_to_cart' item.product.id %}" method="post">
-                    {% csrf_token %}
-                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1">
-                    <button type="submit">Update</button>
-                </form>
-            </li>
-            {% empty %}
-            <li>Your cart is empty.</li>
-            {% endfor %}
+        <ul id="cart-container">
+            <!-- Cart items will be dynamically loaded here -->
         </ul>
-        <form action="{% url 'place_order' %}" method="post">
-            {% csrf_token %}
-            <button type="submit">Place Order</button>
+        <p id="cart-total">Total: 0.00€</p>
+        <form id="place-order-form">
+            <button type="button" onclick="placeOrder()">Place Order</button>
         </form>
         <br>
-        <a href="{% url 'products' %}">Continue Shopping</a>
+        <button onclick="window.location.href='/products/'">Continue Shopping</button>
     </div>
 </body>
 

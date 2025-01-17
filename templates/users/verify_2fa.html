@@ -4,6 +4,8 @@
 <head>
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+    <script src="{% static 'js/tokenManager.js' %}"></script>
+    <script src="{% static 'js/apiWrapper.js' %}"></script>
     <title>Verify 2FA</title>
     <script>
         async function verify2FA(event) {
@@ -11,20 +13,25 @@
             const token = localStorage.getItem('accessToken');
             const otp = document.getElementById('otp').value;
 
-            const response = await fetch('/api/users/login/', {
+            try {
+            const response = await apiFetch('/api/users/login/', {
                 method: 'POST',
                 headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ '2fa_code': otp }),
             });
 
             if (response.ok) {
                 alert('2FA verified. Welcome!');
-                window.location.href = '/dashboard';
+                window.location.href = '/products/';
             } else {
                 alert('Invalid 2FA code.');
+            }
+            } catch (error) {
+            console.error('Error during 2FA verification:', error);
+            alert('An error occurred. Please try again.');
             }
         }
     </script>

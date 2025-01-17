@@ -4,6 +4,7 @@ from .views import (
     UserProfileViewSet,
     UserRegistrationAPIView,
     LoginAPIView,
+    LogoutAPIView,
     Setup2FAAPIView,
     Disable2FAAPIView,
     UserManagementAPIView
@@ -23,6 +24,7 @@ urlpatterns = [
     # Authentication and Registration
     path('register/', UserRegistrationAPIView.as_view(), name='register'),
     path('login/', LoginAPIView.as_view(), name='login'),
+    path('logout/', LogoutAPIView.as_view(), name='logout'),
     
     # 2FA Endpoints
     path('setup-2fa/', Setup2FAAPIView.as_view(), name='setup_2fa'),

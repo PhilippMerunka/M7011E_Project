@@ -1,7 +1,11 @@
-from django.urls import path
-from .views import place_order, view_orders
+from django.urls import path, include
+from .views import OrderViewSet, OrderOverviewPageView, OrderConfirmationPageView
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r'orders', OrderViewSet, basename='order')
 
 urlpatterns = [
-    path('place-order/', place_order, name='place_order'),
-    path('view-orders/', view_orders, name='view_orders'),
+    path('', OrderOverviewPageView.as_view(), name='orders'),
+    path('confirmation/<int:order_id>/', OrderConfirmationPageView.as_view(), name='order_confirmation'),
 ]

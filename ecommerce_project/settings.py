@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from decouple import config
 from pathlib import Path
 import os
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -52,7 +53,7 @@ INSTALLED_APPS = [
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config('GOOGLE_OAUTH_CLIENT_ID') 
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET')
 
-# LOGIN_URL = '/users/login/'  # Your custom login URL
+LOGIN_URL = '/users/login/'  # Your custom login URL
 
 LOGIN_REDIRECT_URL = '/products/'  # Redirect here after login
 LOGOUT_REDIRECT_URL = '/users/login/'  # Redirect to the login page or any other URL
@@ -160,6 +161,8 @@ USE_I18N = True
 
 USE_TZ = True
 
+CSRF_COOKIE_SECURE = False
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -188,4 +191,6 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }

@@ -11,7 +11,18 @@ from django_filters.rest_framework import DjangoFilterBackend
 from users.permissions import IsStaffOrReadOnly
 from rest_framework.views import APIView
 from products.models import Product
+from rest_framework.permissions import BasePermission
 
+class CanCreateOwnCart(BasePermission):
+    """
+    Custom permission to allow only users to create their own carts.
+    """
+    def has_permission(self, request, view):
+        # Allow POST for authenticated users to create their own carts
+        if request.method == 'POST':
+            return request.user.is_authenticated
+        # Other operations follow the default permissions
+        return False
 
 class CartViewSet(ModelViewSet):
     permission_classes = [IsStaffOrReadOnly]
@@ -24,8 +35,19 @@ class CartViewSet(ModelViewSet):
     ordering = ['created_at']  # Default ordering
     fields = ['id', 'user', 'created_at', 'items', 'total_items', 'total_price']
     
+    def get_permissions(self):
+        """
+        Dynamically set permissions based on the action.
+        """
+        if self.action == 'create':
+            return [IsAuthenticated(), CanCreateOwnCart()]  # Allow users to create their own cart
+        elif self.action in ['retrieve', 'update', 'destroy']:
+            return [IsAuthenticated()]  # Restrict actions to authenticated users
+        elif self.action == 'list':
+            return [IsAuthenticated()]
+        return super().get_permissions()
+    
     def get_queryset(self):
-        # Restrict carts to the authenticated user
         return Cart.objects.filter(user=self.request.user)
     
     def list(self, request):
@@ -53,8 +75,14 @@ class CartViewSet(ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def retrieve(self, request, pk=None):
-        # Ensure the cart belongs to the authenticated user
-        cart = get_object_or_404(Cart, pk=pk, user=request.user)
+        """
+        Allow staff to retrieve any cart and users to retrieve their own cart.
+        """
+        if request.user.is_staff:
+            cart = get_object_or_404(Cart, pk=pk)
+        else:
+            cart = get_object_or_404(Cart, pk=pk, user=request.user)
+
         serializer = self.get_serializer(cart)
         return Response(serializer.data)
 
@@ -72,6 +100,20 @@ class CartViewSet(ModelViewSet):
         cart.delete()
         return Response({'message': 'Cart deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
     
+class CanManageOwnCartItems(BasePermission):
+    """
+    Custom permission to allow users to manage items in their own carts.
+    """
+    def has_object_permission(self, request, view, obj):
+        if obj.cart.user == request.user:
+            return True
+        return False
+
+    def has_permission(self, request, view):
+        if request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
+            return request.user.is_authenticated
+        return False
+
 class CartItemViewSet(ModelViewSet):
     permission_classes = [IsStaffOrReadOnly]
     serializer_class = CartItemSerializer
@@ -83,9 +125,18 @@ class CartItemViewSet(ModelViewSet):
     ordering_fields = ['id']  # Sortable fields
     ordering = ['id']  # Default ordering
     fields = ['id', 'cart', 'product', 'quantity']
-
+    
+    def get_permissions(self):
+        """
+        Dynamically set permissions based on the action.
+        """
+        if self.action in ['create', 'update', 'destroy']:
+            return [IsAuthenticated(), CanManageOwnCartItems()]  # Restrict to own cart items
+        elif self.action in ['list', 'retrieve']:
+            return [IsAuthenticated()]
+        return super().get_permissions()
+    
     def get_queryset(self):
-        # Restrict access to cart items in the authenticated user's cart
         return CartItem.objects.filter(cart__user=self.request.user)
     
     def list(self, request):
@@ -93,7 +144,7 @@ class CartItemViewSet(ModelViewSet):
         
         if own_only:
             queryset = CartItem.objects.filter(user=request.user)
-        if request.user.is_staff:
+        elif request.user.is_staff:
             queryset = CartItem.objects.all()
         else:
             queryset = CartItem.objects.filter(cart__user=request.user)
@@ -122,15 +173,31 @@ class CartItemViewSet(ModelViewSet):
         return Response(self.get_serializer(cart_item).data, status=status.HTTP_201_CREATED)
 
     def retrieve(self, request, pk=None):
-        # Ensure the cart item belongs to the authenticated user's cart
-        cart_item = get_object_or_404(CartItem, pk=pk, cart__user=request.user)
+        """
+        Allow staff to retrieve any cart item and users to retrieve their own cart items.
+        """
+        if request.user.is_staff:
+            cart_item = get_object_or_404(CartItem, pk=pk)
+        else:
+            cart_item = get_object_or_404(CartItem, pk=pk, cart__user=request.user)
+
         serializer = self.get_serializer(cart_item)
         return Response(serializer.data)
 
-    def update(self, request, pk=None):
-        # Ensure the cart item belongs to the authenticated user's cart
-        cart_item = get_object_or_404(CartItem, pk=pk, cart__user=request.user)
-        serializer = self.get_serializer(cart_item, data=request.data, partial=True)
+    def update(self, request, pk=None, partial=True):
+        """
+        Allow users to update their own cart items and staff to update any cart item.
+        """
+        print(f"[DEBUG] Updating CartItem ID: {pk}, User: {request.user}")
+        if request.user.is_staff:
+            # Staff can update any cart item
+            cart_item = get_object_or_404(CartItem, pk=pk)
+        else:
+            # Regular users can update only their own cart items
+            cart_item = get_object_or_404(CartItem, pk=pk, cart__user=request.user)
+        
+        print(f"[DEBUG] CartItem Fetched: {cart_item}")
+        serializer = self.get_serializer(cart_item, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)

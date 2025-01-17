@@ -4,28 +4,79 @@
 <head>
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+    <script src="{% static 'js/apiWrapper.js' %}"></script>
     <title>Your Orders</title>
+    <script>
+        async function fetchProductName(productId) {
+            try {
+                // Fetch product details by ID
+                const response = await apiFetch(`/api/products/products/${productId}/`);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch product with ID: ${productId}`);
+                }
+                const product = await response.json();
+                return product.name;
+            } catch (error) {
+                console.error(`Error fetching product ${productId}:`, error);
+                return 'Unknown Product'; // Fallback name in case of error
+            }
+        }
+
+        async function fetchOrders() {
+            try {
+                const response = await apiFetch('/api/orders/orders/?own=true');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch orders');
+                }
+
+                const orders = await response.json();
+                const ordersContainer = document.getElementById('orders-container');
+                ordersContainer.innerHTML = ''; // Clear existing orders
+
+                if (orders.length === 0) {
+                    ordersContainer.innerHTML = '<li>You have no orders.</li>';
+                    return;
+                }
+
+                for (const order of orders) {
+                    const items = await Promise.all(
+                        order.items.map(async (item) => {
+                            const productName = await fetchProductName(item.product);
+                            return `
+                                <li>
+                                    ${productName} - ${item.quantity} x ${parseFloat(item.price).toFixed(2)}€ = 
+                                    ${(item.quantity * parseFloat(item.price)).toFixed(2)}€
+                                </li>
+                            `;
+                        })
+                    );
+
+                    const orderElement = document.createElement('li');
+                    orderElement.innerHTML = `
+                        <strong>Order #${order.id}</strong> - ${new Date(order.created_at).toLocaleString()}<br>
+                        Total: ${parseFloat(order.total).toFixed(2)}€<br>
+                        <ul>
+                            ${items.join('')}
+                        </ul>
+                    `;
+                    ordersContainer.appendChild(orderElement);
+                }
+            } catch (error) {
+                console.error('Error fetching orders:', error);
+                alert('Failed to load orders. Please try again later.');
+            }
+        }
+        document.addEventListener('DOMContentLoaded', fetchOrders);
+    </script>
 </head>
 
 <body>
     <div class="store-container">
         <h2>Your Orders</h2>
-        <ul>
-            {% for order in orders %}
-            <li>
-                <strong>Order #{{ order.id }}</strong> - {{ order.created_at }}<br>
-                Total: {{ order.total }}€<br>
-                <ul>
-                    {% for item in order.items.all %}
-                    <li>{{ item.product.name }} - {{ item.quantity }} x {{ item.price }}€</li>
-                    {% endfor %}
-                </ul>
-            </li>
-            {% empty %}
-            <li>You have no orders.</li>
-            {% endfor %}
+        <ul id="orders-container">
+            <!-- Orders will be dynamically loaded here -->
         </ul>
-        <a href="{% url 'products' %}">Continue Shopping</a>
+        <a href="/products/">Continue Shopping</a>
     </div>
 </body>
 
